@@ -1118,3 +1118,15 @@ extension ListContentNode: _ListRowIdentifying {
         return selected.contains(id) ? selected : [id]
     }
 }
+
+package struct InListFooterKey: EnvironmentKey {
+    package static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// The view is a footer of a section of an iOS list (`LayoutNodes.swift`: its negative bottom padding does not shrink it).
+    package var _inListFooter: Bool {
+        get { self[InListFooterKey.self] }
+        set { self[InListFooterKey.self] = newValue }
+    }
+}

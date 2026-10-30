@@ -261,6 +261,7 @@ package final class SectionNode<Parent: View, Content: View, Footer: View>:
         styled.font = footer ? styling.footerFont ?? styling.font : styling.font
         styled.foregroundColor = footer ? styling.footerForeground ?? styling.foreground : styling.foreground
         styled._sectionStyling = nil
+        if footer, environment.platformProfile.isIOS { styled._inListFooter = true }
         return styled
     }
 

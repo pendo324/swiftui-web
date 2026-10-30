@@ -425,7 +425,9 @@ package func _alignedOrigin(_ child: ViewDimensions, in size: CGSize, alignment:
 package final class PaddingNode<Content: View>: UnaryLayoutModifierNode<Content, _PaddingLayout> {
     override package var changesChildSize: Bool { true }
     package var insets: EdgeInsets {
-        modifier.insets ?? EdgeInsets(modifier.edges, PlatformMetrics.defaultPadding)
+        var insets = modifier.insets ?? EdgeInsets(modifier.edges, PlatformMetrics.defaultPadding)
+        if insets.bottom < 0, environment._inListFooter { insets.bottom = 0 }
+        return insets
     }
     override package func childProposal(_ proposal: ProposedViewSize) -> ProposedViewSize {
         let insets = insets
