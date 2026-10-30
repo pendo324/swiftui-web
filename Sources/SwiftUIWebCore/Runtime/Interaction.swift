@@ -88,10 +88,15 @@ extension ViewNode {
     }
 
     /// All nodes in structural order that satisfy `predicate`.
-    package func descendants(where predicate: (ViewNode) -> Bool) -> [ViewNode] {
+    package func descendants(where predicate: (ViewNode) -> Bool, file: StaticString = #fileID, line: UInt = #line) -> [ViewNode] {
+        if _traceWalks { _walkCounts["\(file):\(line)", default: 0] += 1 }
+        return walkDescendants(where: predicate)
+    }
+
+    private func walkDescendants(where predicate: (ViewNode) -> Bool) -> [ViewNode] {
         var result: [ViewNode] = []
         if predicate(self) { result.append(self) }
-        for child in structuralChildren { result += child.descendants(where: predicate) }
+        for child in structuralChildren { result += child.walkDescendants(where: predicate) }
         return result
     }
 }
