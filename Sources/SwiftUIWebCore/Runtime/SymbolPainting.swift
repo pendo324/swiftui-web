@@ -37,6 +37,8 @@ package enum _SymbolPainter {
         func fill(_ path: Path) -> DisplayCommand { gradient.map { .fillGradient(path, $0) } ?? .fillPath(path, color, eoFill: false) }
         func stroke(_ path: Path) -> DisplayCommand { gradient.map { .strokeGradient(path, style: style, $0) } ?? .strokePath(path, style: style, color) }
         switch symbol.glyph.mode {
+        case 3:
+            list.append(fill(path(0..<ops.count)))
         case 1:
             let whole = path(0..<ops.count)
             list.append(fill(whole))

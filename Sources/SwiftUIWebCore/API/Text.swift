@@ -847,9 +847,9 @@ package final class TextNode: LeafNode<Text>, _HoverTracking, _PointerStyled, _I
         func measure(_ name: String) -> SystemSymbolMetrics.Size? {
             SystemSymbolMetrics.size(named: name, pointSize: font.size, weight: font.weight, scale: environment.imageScale, legacy: legacy, extended: runtime.extendedSymbolMetrics)
         }
-        let name = candidates.first { SystemSymbolGlyphs.glyph(named: $0) != nil && measure($0) != nil }
-            ?? candidates.first { SystemSymbolGlyphs.glyph(named: $0) != nil } ?? candidates.first { measure($0) != nil } ?? base
-        let glyph = SystemSymbolGlyphs.glyph(named: name) ?? (measure(name) != nil ? SystemSymbolGlyphs.glyph(named: "square.dashed") : nil)
+        let name = candidates.first { SystemSymbolGlyphs.hasGlyph($0) && measure($0) != nil }
+            ?? candidates.first { SystemSymbolGlyphs.hasGlyph($0) } ?? candidates.first { measure($0) != nil } ?? base
+        let glyph = SystemSymbolGlyphs.glyph(named: name, font: font, imageScale: environment.imageScale, box: measure(name)) ?? SystemSymbolGlyphs.glyph(named: name) ?? (measure(name) != nil ? SystemSymbolGlyphs.glyph(named: "square.dashed") : nil)
         if let size = measure(name) { return (glyph, size) }
         let star = SystemSymbolMetricsTable.values(named: "star", legacy: legacy) ?? []
         let size = star.count >= 36 ? SystemSymbolMetrics.size(values: star, pointSize: font.size, weight: font.weight, scale: environment.imageScale) : SystemSymbolMetrics.fallback

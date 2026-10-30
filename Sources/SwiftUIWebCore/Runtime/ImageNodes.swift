@@ -68,6 +68,8 @@ package final class ImageNode: LeafNode<Image>, _FrameSubscriber, _ImageNodeMark
     /// A system symbol's glyph (an open icon standing in for the SF Symbol) and its measured
     /// layout size at the environment's font, weight and image scale.
     package private(set) var symbol: (glyph: SymbolGlyph, outline: SymbolGlyphOutline)?
+    /// How many times a symbol the font has but did not give was asked of it again when it was painted.
+    private var glyphRetries = 0
     package private(set) var symbolSize: SystemSymbolMetrics.Size?
 
     private func resolve() {
@@ -95,8 +97,8 @@ package final class ImageNode: LeafNode<Image>, _FrameSubscriber, _ImageNodeMark
             func measure(_ name: String) -> SystemSymbolMetrics.Size? {
                 SystemSymbolMetrics.size(named: name, pointSize: font.size, weight: font.weight, scale: environment.imageScale, legacy: environment.platformProfile.isIOS, extended: runtime.extendedSymbolMetrics)
             }
-            let name = candidates.first { SystemSymbolGlyphs.glyph(named: $0) != nil && measure($0) != nil }
-                ?? candidates.first { SystemSymbolGlyphs.glyph(named: $0) != nil }
+            let name = candidates.first { SystemSymbolGlyphs.hasGlyph($0) && measure($0) != nil }
+                ?? candidates.first { SystemSymbolGlyphs.hasGlyph($0) }
                 ?? candidates.first { measure($0) != nil } ?? base
             let measured = measure(name)
             // Until a host that can load the full table has, a name outside the built-in set is
@@ -105,7 +107,7 @@ package final class ImageNode: LeafNode<Image>, _FrameSubscriber, _ImageNodeMark
             // the dashed square and an unknown name nothing (sw-symbols).
             let pending = measured == nil && runtime.onNeedsSymbolMetrics != nil && !runtime.isSymbolMetricsExtended
             if pending { runtime.requestSymbolMetrics() }
-            symbol = SystemSymbolGlyphs.glyph(named: name) ?? (measured != nil || pending ? SystemSymbolGlyphs.glyph(named: "square.dashed") : nil)
+            symbol = SystemSymbolGlyphs.glyph(named: name, font: font, imageScale: environment.imageScale, box: measured) ?? SystemSymbolGlyphs.glyph(named: name) ?? (measured != nil || pending ? SystemSymbolGlyphs.glyph(named: "square.dashed") : nil)
             if let measured {
                 symbolSize = measured
             } else if symbol != nil {
@@ -181,7 +183,12 @@ package final class ImageNode: LeafNode<Image>, _FrameSubscriber, _ImageNodeMark
             list.append(.fillRect(context.absoluteRect(CGRect(x: rect.minX - context.origin.x, y: rect.minY - context.origin.y, width: rect.width, height: rect.height)), environment._placeholderColor))
             return
         }
-        if case .system = view.source {
+        if case .system(let name) = view.source {
+            // A symbol the font did not give when this resolved it (it is read from a file, which can fail for a moment) is asked for again, a few times.
+            if symbol?.glyph.mode != 3, glyphRetries < 3, SystemSymbolGlyphs.hasNativeGlyph(name) {
+                glyphRetries += 1
+                resolve()
+            }
             paintSymbol(into: &list, context: context)
             return
         }
