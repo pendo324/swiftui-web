@@ -149,7 +149,14 @@ package final class ProgressRingNode: LeafNode<_ProgressRing>, _FrameSubscriber 
 
     // A spinner's tick changes its paint, not its size: a repaint, never a layout that forgets
     // the memoised sizes (Ember's "loading more" footer made every scrolled frame a full layout).
-    package func frameDidAdvance() { runtime.requestRepaint() }
+    private var drawnPhase = -1
+    package var drawsEveryFrame: Bool { false }
+    package func frameDidAdvance() {
+        let phase = spinnerPhase
+        guard phase != drawnPhase else { return }
+        drawnPhase = phase
+        runtime.requestRepaint()
+    }
 
     override package func unmount() {
         runtime.unsubscribeFrames(self)

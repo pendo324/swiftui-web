@@ -14,6 +14,13 @@ import Foundation
 package protocol _FrameSubscriber: AnyObject {
     /// Called once per host frame while animations are advanced.
     func frameDidAdvance()
+    /// Whether the host must draw a frame for this subscriber whether or not it asked for one (an animation in flight): one that only
+    /// wakes to ask for a repaint when something changed does not.
+    var drawsEveryFrame: Bool { get }
+}
+
+extension _FrameSubscriber {
+    package var drawsEveryFrame: Bool { true }
 }
 
 @MainActor
@@ -155,8 +162,12 @@ extension Runtime {
     /// Advances frame subscribers (timeline views on the animation schedule); returns whether any remain.
     package func advanceFrameSubscribers() -> Bool {
         frameSubscribers.removeAll { $0.subscriber == nil }
-        for entry in frameSubscribers { entry.subscriber?.frameDidAdvance() }
-        return !frameSubscribers.isEmpty
+        var drawing = false
+        for entry in frameSubscribers {
+            entry.subscriber?.frameDidAdvance()
+            if entry.subscriber?.drawsEveryFrame == true { drawing = true }
+        }
+        return drawing
     }
 }
 
