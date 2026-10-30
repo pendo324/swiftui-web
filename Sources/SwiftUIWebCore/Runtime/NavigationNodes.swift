@@ -235,9 +235,10 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
         let presented = provider.isPresented
         let scopes = presented ? runtime.activeSearchScopes : nil
         var top: CGFloat = presented && !source.keepsBar ? PlatformMetrics.searchPresentedTopInset : 0
+        if source.drawer { top += PlatformMetrics.searchDrawerBandHeight }
         if scopes != nil { top += PlatformMetrics.searchScopeBandHeight }
         return SearchChrome(source: source, presented: presented, scopes: scopes, top: top,
-                            bottom: presented ? PlatformMetrics.searchPresentedBandHeight : PlatformMetrics.searchBandHeight)
+                            bottom: source.drawer ? 0 : presented ? PlatformMetrics.searchPresentedBandHeight : PlatformMetrics.searchBandHeight)
     }
 
     /// Mounts, updates or drops the field and the scope bar for this layout pass, and places them.
@@ -255,7 +256,9 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
         } else {
             searchBar = AnyView._makeNode(_NodeContext(view: barView, parent: self, environment: environment))
         }
-        let band = CGRect(x: 0, y: frame.height - chrome.bottom, width: frame.width, height: chrome.bottom)
+        let band = chrome.source.drawer
+            ? CGRect(x: 0, y: barHeight, width: frame.width, height: PlatformMetrics.searchDrawerBandHeight)
+            : CGRect(x: 0, y: frame.height - chrome.bottom, width: frame.width, height: chrome.bottom)
         for node in searchBar?.layoutChildren ?? [] {
             node.place(at: band.origin, anchor: .topLeading, proposal: ProposedViewSize(band.size), by: self)
         }

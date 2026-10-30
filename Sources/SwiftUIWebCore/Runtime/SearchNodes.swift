@@ -15,6 +15,8 @@ package struct SearchSource {
     var setPresented: @MainActor (Bool) -> Void
     /// `searchPresentationToolbarBehavior(.avoidHidingContent)`: the navigation bar stays while presented.
     var keepsBar: Bool
+    /// `placement: .navigationBarDrawer`: the field is under the navigation bar.
+    var drawer: Bool
 
     @MainActor package var presented: Bool { isPresented() }
     @MainActor package var tokenCount: Int { tokens?.count() ?? 0 }
@@ -67,7 +69,8 @@ package final class SearchableNode<Content: View>: UnaryLayoutModifierNode<Conte
         SearchSource(node: self, text: modifier.text, prompt: modifier.prompt, tokens: modifier.tokens,
                      isPresented: { [weak self] in self?.isPresented ?? false },
                      setPresented: { [weak self] in self?.setPresented($0) },
-                     keepsBar: environment._searchPresentationToolbarBehavior == .avoidHidingContent)
+                     keepsBar: environment._searchPresentationToolbarBehavior == .avoidHidingContent || modifier.placement == .navigationBarDrawer,
+                     drawer: modifier.placement == .navigationBarDrawer)
     }
 
     override package func update(view: ModifiedContent<Content, _SearchableModifier>, environment: EnvironmentValues, force: Bool) {
@@ -373,15 +376,24 @@ struct _IOSSearchBarView: View {
     let source: SearchSource
     let presented: Bool
     @FocusState private var focused: Bool
+    @Environment(\.colorScheme) private var scheme
 
     private var text: String { source.text.wrappedValue }
+    private var drawer: Bool { source.drawer }
+    private var dark: Bool { scheme == .dark }
+    /// The drawer's field is filled with the tertiary system fill and its magnifier and placeholder are the label colour dimmed.
+    private var drawerFill: Color { Color(.sRGB, red: 118.0 / 255, green: 118.0 / 255, blue: 128.0 / 255, opacity: dark ? 0.24 : 0.12) }
+    private var drawerInk: Color {
+        dark ? Color(.sRGB, red: 235.0 / 255, green: 235.0 / 255, blue: 245.0 / 255, opacity: 0.4)
+             : Color(.sRGB, red: 60.0 / 255, green: 60.0 / 255, blue: 67.0 / 255, opacity: 0.6)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             HStack(alignment: .top, spacing: PlatformMetrics.searchCancelGap) {
                 field
-                    .padding(.top, presented ? PlatformMetrics.searchPresentedFieldTop : PlatformMetrics.searchFieldTop)
-                if presented {
+                    .padding(.top, drawer ? PlatformMetrics.searchDrawerFieldTop : presented ? PlatformMetrics.searchPresentedFieldTop : PlatformMetrics.searchFieldTop)
+                if presented && !drawer {
                     Button(action: cancel) {
                         Image(systemName: "xmark")
                             .font(.system(size: PlatformMetrics.searchCancelGlyphSize, weight: .medium))
@@ -395,7 +407,7 @@ struct _IOSSearchBarView: View {
                     .accessibilityLabel("Cancel")
                 }
             }
-            .padding(.horizontal, presented ? PlatformMetrics.searchPresentedFieldInset : PlatformMetrics.searchFieldInset)
+            .padding(.horizontal, drawer ? PlatformMetrics.searchDrawerFieldInset : presented ? PlatformMetrics.searchPresentedFieldInset : PlatformMetrics.searchFieldInset)
             Spacer(minLength: 0)
         }
         .onChange(of: focused) { _, now in
@@ -410,8 +422,9 @@ struct _IOSSearchBarView: View {
         HStack(spacing: 0) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: PlatformMetrics.searchMagnifierSize))
-                .foregroundStyle(.secondary)
-                .frame(width: PlatformMetrics.searchTextInset - PlatformMetrics.searchMagnifierInset, alignment: .leading)
+                .foregroundStyle(drawer ? drawerInk : Color.secondary)
+                .frame(width: (drawer ? PlatformMetrics.searchDrawerTextInset - PlatformMetrics.searchDrawerMagnifierInset
+                                      : PlatformMetrics.searchTextInset - PlatformMetrics.searchMagnifierInset), alignment: .leading)
             if let tokens = source.tokens, tokens.count() > 0 {
                 HStack(spacing: PlatformMetrics.searchTokenGap) {
                     ForEach(Array(tokens.views().enumerated()), id: \.offset) { entry in
@@ -420,11 +433,17 @@ struct _IOSSearchBarView: View {
                 }
                 .padding(.trailing, PlatformMetrics.searchTokenTextGap)
             }
-            TextField(source.prompt ?? "Search", text: source.text)
+            TextField(drawer ? "" : (source.prompt ?? "Search"), text: source.text)
                 .textFieldStyle(.plain)
                 .font(.body)
                 .focused($focused)
                 .frame(height: PlatformMetrics.searchTextLineHeight, alignment: .top)
+                .frame(maxWidth: drawer ? .infinity : nil, alignment: .leading)
+                .background(alignment: .leading) {
+                    if drawer && text.isEmpty {
+                        Text(verbatim: source.prompt ?? "Search").font(.body).foregroundStyle(drawerInk).lineLimit(1)
+                    }
+                }
             if presented && !text.isEmpty {
                 Button(action: { source.text.wrappedValue = "" }) {
                     Image(systemName: "xmark")
@@ -437,13 +456,14 @@ struct _IOSSearchBarView: View {
                 .accessibilityLabel("Clear text")
             }
         }
-        .padding(.leading, PlatformMetrics.searchMagnifierInset)
-        .padding(.trailing, presented ? PlatformMetrics.searchClearTrailing : PlatformMetrics.searchMagnifierInset)
+        .padding(.leading, drawer ? PlatformMetrics.searchDrawerMagnifierInset : PlatformMetrics.searchMagnifierInset)
+        .padding(.trailing, presented ? PlatformMetrics.searchClearTrailing : drawer ? PlatformMetrics.searchDrawerMagnifierInset : PlatformMetrics.searchMagnifierInset)
         .frame(maxWidth: .infinity)
-        .frame(height: PlatformMetrics.searchFieldHeight)
-        .background(Capsule().fill(Color(PlatformMetrics.searchFieldFill))
-            .shadow(color: Color.black.opacity(PlatformMetrics.searchFieldShadowAlpha),
-                    radius: PlatformMetrics.searchFieldShadowRadius, y: PlatformMetrics.searchFieldShadowOffset))
+        .frame(height: drawer ? PlatformMetrics.searchDrawerFieldHeight : PlatformMetrics.searchFieldHeight)
+        .background(drawer ? AnyView(Capsule().fill(drawerFill))
+            : AnyView(Capsule().fill(Color(PlatformMetrics.searchFieldFill))
+                .shadow(color: Color.black.opacity(PlatformMetrics.searchFieldShadowAlpha),
+                        radius: PlatformMetrics.searchFieldShadowRadius, y: PlatformMetrics.searchFieldShadowOffset)))
     }
 
     private func cancel() {

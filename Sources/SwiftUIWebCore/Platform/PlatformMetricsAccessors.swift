@@ -693,6 +693,12 @@ extension PlatformMetrics {
     package static var navigationPushParallax: CGFloat { current.navigationPushParallax }
     package static var navigationPushDim: Double { current.navigationPushDim }
     package static var searchBandHeight: CGFloat { current.searchBandHeight }
+    package static var searchDrawerBandHeight: CGFloat { current.searchDrawerBandHeight }
+    package static var searchDrawerFieldTop: CGFloat { current.searchDrawerFieldTop }
+    package static var searchDrawerFieldHeight: CGFloat { current.searchDrawerFieldHeight }
+    package static var searchDrawerFieldInset: CGFloat { current.searchDrawerFieldInset }
+    package static var searchDrawerMagnifierInset: CGFloat { current.searchDrawerMagnifierInset }
+    package static var searchDrawerTextInset: CGFloat { current.searchDrawerTextInset }
     package static var searchPresentedBandHeight: CGFloat { current.searchPresentedBandHeight }
     package static var searchPresentedTopInset: CGFloat { current.searchPresentedTopInset }
     package static var searchFieldHeight: CGFloat { current.searchFieldHeight }

@@ -884,6 +884,12 @@ package final class PlatformMetricsTable: @unchecked Sendable {
     package var searchTokenTextGap: CGFloat = 4                               // from the last token to the text
     package var searchTokenCornerRadius: CGFloat = 6
     package var searchTokenFill = RGBA(r: 142, g: 142, b: 147)
+    package var searchDrawerBandHeight: CGFloat = 66                          // what the drawer's field takes under the bar
+    package var searchDrawerFieldTop: CGFloat = 15                            // the capsule's top below the bar's bottom edge
+    package var searchDrawerFieldHeight: CGFloat = 43
+    package var searchDrawerFieldInset: CGFloat = 16                          // from the window's sides
+    package var searchDrawerMagnifierInset: CGFloat = 12                         
+    package var searchDrawerTextInset: CGFloat = 40
     package var searchScopeBandHeight: CGFloat = 44
     package var searchScopeBandInk = 7.0 / 255                                // (248) over white
     package var searchScopeBarTop: CGFloat = 2
