@@ -528,7 +528,9 @@ public final class Runtime {
     public private(set) var lastShareProbes: [String: Int] = [:]
     public private(set) var lastWorstNodeChain: [String] = []
     public private(set) var lastWorstNodeProposals: [String] = []
-    private var lastInvalidatingRequest = ""
+    public private(set) var lastInvalidatingRequest = ""
+    /// Whether the last full layout forgot every memoised size (some request invalidated them), which is the cost of a pass.
+    public private(set) var lastLayoutBumped = false
     private var lastForcingRequest = ""
 
     package func noteScrolled(_ node: ViewNode & _Scrollable) {
@@ -586,6 +588,9 @@ public final class Runtime {
         // and their ancestors' as they are applied (`ViewNode.clearNeedsUpdate`).
         let updating = scheduler.hasPendingWork
         if size != layoutSize || pendingAnimation != nil { sizesInvalidated = true }
+        if _forceFullLayout { layoutForced = true }
+        _flushWalks()
+        _traceLayout("pending \(scheduler.hasPendingWork) (dirty \(scheduler.dirtyCount) [\(scheduler.dirtyNames)], actions \(scheduler.actionCount)) resized \(size != layoutSize) animation \(pendingAnimation != nil) animating \(animatingNodes.count) forced \(layoutForced) presentations \(presentations.count) scrolled \(scrolledNodes.count) canMove \(scrolledNodes.map(\.canMoveContentOnly))")
         // A frame that only scrolled moves the scrolled content and keeps every frame else.
         if !updating, !sizesInvalidated, !layoutForced, presentations.isEmpty, scrolledNodes.allSatisfy(\.canMoveContentOnly) {
             for node in scrolledNodes { node.moveContent() }
@@ -644,6 +649,7 @@ public final class Runtime {
         applyColorScheme()
         layoutRequested = false
         // The generation keys every node's size memo: a frame that only scrolled keeps it.
+        lastLayoutBumped = sizesInvalidated
         if sizesInvalidated { layoutGeneration += 1 }
         sizesInvalidated = false
         layoutAnimation = pendingAnimation
@@ -762,6 +768,9 @@ package final class UpdateScheduler {
     package private(set) var flushCount = 0
 
     package var hasPendingWork: Bool { !dirty.isEmpty || !actions.isEmpty }
+    package var dirtyCount: Int { dirty.count }
+    package var actionCount: Int { actions.count }
+    package var dirtyNames: String { dirty.values.map { "\($0.nodeDescription)@\($0.depth)" }.joined(separator: ", ") }
 
     package init() {}
 
