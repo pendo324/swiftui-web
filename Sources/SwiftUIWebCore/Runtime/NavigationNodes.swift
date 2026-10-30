@@ -290,6 +290,8 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
         var environment = environment
         environment._automaticLabelContext = .toolbar
         if let screen = groups.last?.first { environment.dismiss = screen.environment.dismiss }
+        // The items are as tall as the back button, which is a push's; a sheet's bar has smaller ones.
+        environment._iosBarItemHeight = presentationAncestor == nil ? PlatformMetrics.navigationBackButtonDiameter : PlatformMetrics.navigationBarItemHeight
         if let itemsBar {
             itemsBar.update(view: view, environment: environment, force: false)
         } else {
@@ -347,6 +349,8 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
     override package func update(view: _NavigationStackHost, environment: EnvironmentValues, force: Bool) {
         self.view = view
         self.environment = environment
+        // (The back button is drawn by the stack and has no update of its own: it takes the stack's environment, a window's color scheme among it.)
+        backButton.environment = environment
         clearNeedsUpdate()
         changingScreens {
             root.update(view: view.root, environment: contentEnvironment(large: rootLarge), force: force)

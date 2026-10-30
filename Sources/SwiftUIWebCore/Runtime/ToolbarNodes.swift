@@ -446,13 +446,28 @@ struct _ToolbarScopeRowView: View {
 struct _IOSBarItemsView: View {
     let items: [_ToolbarItemData]
 
+    @ViewBuilder
     private func pills(_ group: ToolbarItemPlacement.Group) -> some View {
-        ForEach(Array(items.enumerated()).filter { $0.element.placement.iOSGroup == group }, id: \.offset) { entry in
-            entry.element.view
-                .buttonStyle(_IOSBarButtonStyle(prominent: entry.element.placement.isProminentOnIOS))
-                .fixedSize(horizontal: true, vertical: false)
+        let members = Array(items.enumerated()).filter { $0.element.placement.iOSGroup == group }
+        if !members.isEmpty {
+            // (A bar's title is not on glass: only what is at its edges is.)
+            let row = HStack(spacing: 0) {
+                ForEach(members, id: \.offset) { entry in
+                    entry.element.view
+                        .environment(\._inIOSBarItem, true)
+                        .buttonStyle(_IOSBarButtonStyle(prominent: entry.element.placement.isProminentOnIOS))
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+            }
+            if group == .principal {
+                row
+            } else {
+                _IOSBarGlass { row }
+            }
         }
     }
+
+    @Environment(\._iosBarItemHeight) private var itemHeight
 
     var body: some View {
         HStack(spacing: PlatformMetrics.navigationBarItemSpacing) {
@@ -463,7 +478,7 @@ struct _IOSBarItemsView: View {
             pills(.trailing)
         }
         .padding(.horizontal, PlatformMetrics.navigationBarItemInset)
-        .padding(.top, PlatformMetrics.navigationBarItemTop)
+        .padding(.top, PlatformMetrics.navigationBarItemTop - (itemHeight - PlatformMetrics.navigationBarItemHeight) / 2)
         .frame(maxHeight: .infinity, alignment: .top)
         .font(.body)
     }
@@ -475,16 +490,6 @@ struct _IOSBarItemsView: View {
 struct _IOSBarButtonStyle: ButtonStyle {
     let prominent: Bool
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .fontWeight(prominent ? .semibold : nil)
-            .padding(.horizontal, PlatformMetrics.navigationBarItemPadding)
-            .frame(minWidth: PlatformMetrics.navigationBarItemHeight, minHeight: PlatformMetrics.navigationBarItemHeight, maxHeight: PlatformMetrics.navigationBarItemHeight)
-            .background(
-                Capsule()
-                    .fill(Color(.sRGB, white: 1, opacity: configuration.isPressed ? 0.3 : 0.45))
-                    .shadow(color: Color(.sRGB, white: 0, opacity: 0.08), radius: 4, y: 2)
-            )
-            .overlay(Capsule().strokeBorder(Color(.sRGB, white: 0, opacity: 0.06), lineWidth: 0.5))
-            .opacity(configuration.isPressed ? 0.7 : 1)
+        _IOSBarButtonBody(label: configuration.label, isPressed: configuration.isPressed, prominent: prominent)
     }
 }

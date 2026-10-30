@@ -336,8 +336,9 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
         let barRect = context.absoluteRect(bar)
         let radius = bar.height / 2
         // The shadow: a few rings below the capsule, fading out over 20 pt (approximate: the real one is blurred).
+        // (A shadow is dark whatever the window is.)
         for (spread, alpha) in [(2.0, 0.035), (6.0, 0.025), (11.0, 0.018), (17.0, 0.012)] {
-            list.append(.fillRRect(barRect.insetBy(dx: -spread / 2, dy: -spread / 2).offsetBy(dx: 0, dy: spread / 2), cornerRadius: radius + spread / 2, black(alpha)))
+            list.append(.fillRRect(barRect.insetBy(dx: -spread / 2, dy: -spread / 2).offsetBy(dx: 0, dy: spread / 2), cornerRadius: radius + spread / 2, RGBA(red: 0, green: 0, blue: 0, alpha: alpha * (environment._isDark ? 3 : 1))))
         }
         // The glass: the content blurred under a thin white tint (the capsule fill over white;
         // ios/representable/hostingsafearea-tabs over colour), the refraction not drawn — or a
@@ -347,7 +348,8 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
             style._fill(Path(roundedRect: barRect, cornerRadius: radius), in: barRect, eoFill: false, environment: environment, scale: context.scale, into: &list)
         } else if background.visibility != .hidden {
             list.append(.backdropBlur(Path(roundedRect: barRect, cornerRadius: radius), bounds: barRect, radius: PlatformMetrics.tabBarGlassSigma))
-            list.append(.fillRRect(barRect, cornerRadius: radius, PlatformMetrics.tabBarCapsuleFill))
+            // Dark glass in a dark window: a dark tint over what is blurred behind it, not a white one.
+            list.append(.fillRRect(barRect, cornerRadius: radius, environment._isDark ? RGBA(red: 0.11, green: 0.11, blue: 0.12, alpha: 0.5) : PlatformMetrics.tabBarCapsuleFill))
         }
         if let selectedIndex, selectedIndex < tabs.count {
             let pill = context.absoluteRect(tabs[selectedIndex].segment)
