@@ -849,11 +849,48 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
                 let font = Font.headline.resolve(profile: profile)
                 let metrics = profile.systemFontMetrics(for: font)
                 let width = runtime.layoutText(title, font: font, width: nil).size.width
-                let origin = CGPoint(x: bounds.midX - width / 2, y: bounds.minY + (PlatformMetrics.navigationBarInlineHeight - metrics.lineHeight) / 2 + metrics.baseline)
-                list.append(.drawText(title, DisplayFont(font), origin: origin, color))
+                let baseline = bounds.minY + (PlatformMetrics.navigationBarInlineHeight - metrics.lineHeight) / 2 + metrics.baseline
+                let room = titleRoom(back: bar.back, barWidth: bounds.width)
+                let from = bounds.minX + room.lowerBound, to = bounds.minX + room.upperBound
+                if width <= 2 * min(bounds.midX - from, to - bounds.midX) {
+                    list.append(.drawText(title, DisplayFont(font), origin: CGPoint(x: bounds.midX - width / 2, y: baseline), color))
+                } else if width <= to - from {
+                    list.append(.drawText(title, DisplayFont(font), origin: CGPoint(x: (from + to - width) / 2, y: baseline), color))
+                } else {
+                    let layout = runtime.layoutText([StyledRun(title, font: font)], options: TextLayoutOptions(lineLimit: 1, truncationMode: .tail), width: max(0, to - from))
+                    for fragment in layout.lines.first?.fragments ?? [] where !fragment.text.isEmpty {
+                        list.append(.drawText(fragment.text, DisplayFont(font), origin: CGPoint(x: from + fragment.x, y: baseline), color))
+                    }
+                }
             }
         }
         if bar.back { backButton.paintLook(into: &list, at: bounds.origin, opacity: opacity, context: context) }
+    }
+
+    /// The part of the bar its items leave for the title, in the bar's coordinates: from the end of the leading items (the back button, then a toolbar
+    /// item) to the start of the trailing ones, a spacing clear of each. The items' stack is the leading group, a spacer, the principal items, a spacer
+    /// and the trailing group, so the two spacers that are the stack's own say where the groups end.
+    private func titleRoom(back: Bool, barWidth: CGFloat) -> ClosedRange<CGFloat> {
+        let spacing = PlatformMetrics.navigationBarItemSpacing
+        let origin = frameInRoot.origin
+        var leading: CGFloat = 0
+        var trailing = barWidth
+        if back { leading = PlatformMetrics.navigationBackButtonLeadingInset + PlatformMetrics.navigationBackButtonDiameter + spacing }
+        func depth(_ node: ViewNode) -> Int {
+            var count = 0
+            var up = node.parent
+            while let above = up, above !== self { count += 1; up = above.parent }
+            return count
+        }
+        let spacers = itemsBar?.descendants(where: { $0 is SpacerNode }) ?? []
+        if let shallowest = spacers.map(depth).min() {
+            let own = spacers.filter { depth($0) == shallowest }.map { $0.frameInRoot.offsetBy(dx: -origin.x, dy: -origin.y) }.sorted { $0.minX < $1.minX }
+            if let first = own.first, let last = own.last, own.count == 2 {
+                leading = max(leading, first.minX + spacing)
+                trailing = min(trailing, last.maxX - spacing)
+            }
+        }
+        return leading...max(leading, trailing)
     }
 
     override package var paintedChildren: [ViewNode] { (groups.last ?? []) + (backButton.isShown ? [backButton] : []) + itemsBarNodes + searchChromeNodes }
