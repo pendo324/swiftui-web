@@ -482,6 +482,9 @@ public final class Runtime {
 
     /// A touch pan of scroll views in progress.
     package var pan: PanState?
+    /// The touch in flight is offered to `_touchHook`, and whether a recogniser of UIKit's has taken it.
+    package var touchTracked = false
+    package var touchClaimed = false
 
     /// Scroll views with momentum or fading indicators (`advanceScrollAnimations`).
     package var animatingScrollNodes: [ViewNode & _Scrollable] = []

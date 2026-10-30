@@ -119,6 +119,12 @@ extension Runtime {
     public func pointerDown(at point: CGPoint, type: PointerType = .mouse, time: Double = 0) {
         lastPointerTime = time
         lastPointerType = type
+        touchTracked = false
+        touchClaimed = false
+        if type == .touch, presentations.isEmpty, let hook = _touchHook {
+            touchTracked = true
+            _ = hook(0, point, time)
+        }
         if type == .touch { beginPan(at: point, time: time) }
         // A touch that stopped a decelerating scroll view belongs to it, not to a control.
         if pan?.active == true { return }
@@ -186,6 +192,13 @@ extension Runtime {
     public func pointerMoved(to point: CGPoint, time: Double = 0) {
         lastPointerTime = time
         pointerPosition = point
+        if touchTracked, let hook = _touchHook {
+            if hook(1, point, time), !touchClaimed {
+                touchClaimed = true
+                claimTouch()
+            }
+            if touchClaimed { return }
+        }
         continuePan(to: point, time: time)
         if dragSession != nil {
             updateDrag(to: point)
@@ -218,6 +231,14 @@ extension Runtime {
     public func pointerUp(at point: CGPoint, time: Double = 0) {
         lastPointerTime = time
         pendingDrag = nil
+        if touchTracked, let hook = _touchHook {
+            touchTracked = false
+            _ = hook(2, point, time)
+            if touchClaimed {
+                touchClaimed = false
+                return
+            }
+        }
         if dragSession != nil {
             endDrag(at: point)
             return

@@ -72,6 +72,11 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
 
     package private(set) var tabs: [Tab] = []
     package private(set) var bar: CGRect = .zero
+    /// The node of the selected tab's content.
+    package var selectedContent: ViewNode? {
+        guard let selectedIndex, selectedIndex < tabs.count else { return nil }
+        return tabs[selectedIndex].node
+    }
     private var selectedIndex: Int?
 
     package init(_ context: _NodeContext<_TabViewPrimitive>) {
