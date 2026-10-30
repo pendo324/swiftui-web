@@ -178,11 +178,11 @@ public struct DisplayList: Equatable, Sendable {
 }
 
 /// Formats a number for display-list descriptions: integers without a fraction.
-public func _displayFormat(_ v: CGFloat) -> String { v == v.rounded() ? "\(Int(v))" : "\(v)" }
+public func _displayFormat(_ v: CGFloat) -> String { abs(v) < 1e15 && v == v.rounded() ? "\(Int(v))" : "\(v)" }
 
 extension DisplayCommand: CustomStringConvertible {
     public var description: String {
-        func f(_ v: CGFloat) -> String { v == v.rounded() ? "\(Int(v))" : "\(v)" }
+        func f(_ v: CGFloat) -> String { abs(v) < 1e15 && v == v.rounded() ? "\(Int(v))" : "\(v)" }
         func r(_ rect: CGRect) -> String { "(\(f(rect.minX)), \(f(rect.minY)), \(f(rect.width)), \(f(rect.height)))" }
         func c(_ color: RGBA) -> String {
             let hex = String(Int((color.red * 255).rounded()), radix: 16, uppercase: true).leftPadded(2)
