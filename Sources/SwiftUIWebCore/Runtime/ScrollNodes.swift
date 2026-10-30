@@ -924,7 +924,7 @@ extension Runtime {
         // A scroll view inside a hosted tree under the pointer takes the wheel first; what it
         // leaves (at its end) chains to the scroll views around it (ios/representable/wheel).
         var delta = delta
-        if let host = interactiveNode(at: point) as? any _PlatformViewHosting, let node = host as? ViewNode {
+        if !platformHosts.isEmpty, let host = interactiveNode(at: point) as? any _PlatformViewHosting, let node = host as? ViewNode {
             let origin = node.frameInRoot.origin
             delta = host.tree.scrollWheel(by: delta, at: CGPoint(x: point.x - origin.x, y: point.y - origin.y))
             if delta == .zero { return }
