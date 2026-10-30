@@ -294,7 +294,10 @@ package final class ListContentNode<Content: View>: LayoutNode<_ListContent<Cont
 
     override package var paintedChildren: [ViewNode] { elements.map(\.node) }
     override package var structuralChildren: [ViewNode] { [child] + strips.values.flatMap { Array($0.values) } }
-    override package var nodeDescription: String { "List" }
+    override package var nodeDescription: String {
+        guard _dumpFrames else { return "List" }
+        return "List planned [" + elements.prefix(40).map { "\($0.kind == .row ? "r" : $0.kind == .header ? "H" : "F") \(Int($0.contentFrame.minY)) \(Int($0.contentFrame.height)) frame \(Int($0.frame.minY)) \(Int($0.frame.height)) node \(Int($0.node.frame.minY)) \(Int($0.node.frame.height)) #\(String(UInt(bitPattern: ObjectIdentifier($0.node).hashValue) & 0xfffff, radix: 16)) \($0.node.nodeDescription.prefix(24))\(($0.node as? LayoutModifierProxy).map { " <- owner \(($0.owner as? ViewNode)?.nodeDescription.prefix(30) ?? "?") target \($0.target.nodeDescription.prefix(30)) #\(String(UInt(bitPattern: ObjectIdentifier($0.target).hashValue) & 0xfffff, radix: 16)) \(Int($0.target.frame.height))" } ?? "")" }.joined(separator: "; ") + "]"
+    }
 
     override package func unmount() {
         for node in backgrounds.values { node.unmount() }
