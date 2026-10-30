@@ -793,6 +793,18 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
     /// 80 pt (ios/nav/scroll `row1`, `row8`: 218 at the top, 231 at 40 pt, 246 at 60, 253 at
     /// 80 over white), full once the content has moved a quarter of the collapse. At rest there
     /// is none.
+    private func paintScrollEdgeFade(over band: CGRect, into list: inout DisplayList) {
+        let ground = (groups.last?.first?.descendants(where: { $0 is any _ListGroundProviding }).first as? any _ListGroundProviding)?._groundColor?
+            .resolve(in: environment) ?? environment._windowBackground
+        // (A search field in the bar's drawer is part of the bar: the content fades under it too.)
+        let drawer = (search(over: groups.last ?? [])?.searchSource.drawer ?? false) ? PlatformMetrics.searchDrawerBandHeight : 0
+        let zone = CGRect(x: band.minX, y: band.minY, width: band.width, height: band.height + drawer + 24)
+        let solid = (band.height + drawer) / zone.height
+        let stops = (drawer > 0 ? [(0.0, 1.0), (solid, 0.98), (1.0, 0.0)] : [(0.0, 0.96), (0.7, 0.9), (1.0, 0.0)]).map { DisplayGradient.Stop(location: $0.0, color: ground.multiplyingAlpha(by: $0.1)) }
+        let gradient = DisplayGradient(kind: .linear(start: zone.origin, end: CGPoint(x: zone.minX, y: zone.maxY)), stops: stops)
+        list.append(.fillGradient(Path(zone), gradient))
+    }
+
     private func paintGlass(strength: Double, into list: inout DisplayList, bounds: CGRect) {
         guard strength > 0 else { return }
         let zone = CGRect(x: bounds.minX, y: bounds.minY, width: bounds.width, height: PlatformMetrics.navigationGlassHeight)
@@ -836,6 +848,10 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
             list.append(.fillRect(band, environment._windowBackground))
         }
         if profile.isIOS, bar.large, bar.collapsed, background.visibility != .hidden, background.style == nil { paintGlass(strength: 1, into: &list, bounds: bounds) }
+        if profile.isIOS, !bar.large, background.visibility != .hidden, background.style == nil,
+           groups.last?.first?.descendants(where: { (($0 as? any _Scrollable)?.contentOffset.y ?? 0) > 0.5 }).isEmpty == false {
+            paintScrollEdgeFade(over: band, into: &list)
+        }
         if let title = bar.title {
             if bar.showsLargeTitle {
                 // The large title scrolls up with the content until it is under the inline zone
