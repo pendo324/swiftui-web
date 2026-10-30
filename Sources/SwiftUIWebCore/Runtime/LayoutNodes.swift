@@ -201,6 +201,7 @@ open class UnaryLayoutModifierNode<Content: View, Modifier: ViewModifier>:
     }
 
     package var modifiedContent: ViewNode { child }
+    override package var memoDependents: [ViewNode] { Array(proxies.values) }
     package var targets: [ViewNode] { child.layoutChildren }
 
     override package func stackOrientationDidChange() {

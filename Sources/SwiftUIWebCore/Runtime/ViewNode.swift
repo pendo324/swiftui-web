@@ -218,6 +218,7 @@ open class ViewNode {
             if current.forgottenInEpoch == epoch { return }
             current.forgottenInEpoch = epoch
             current.invalidateSizeMemo()
+            for dependent in current.memoDependents { dependent.invalidateSizeMemo() }
             node = current.parent
         }
     }
@@ -251,6 +252,9 @@ open class ViewNode {
     }
 
     /// Forgets this node's memoised sizes alone.
+    /// The nodes whose memoised sizes are computed from this node's and that are not among its ancestors: the proxies of a modifier's elements.
+    package var memoDependents: [ViewNode] { [] }
+
     package final func invalidateSizeMemo() {
         sizeCache.removeAll(keepingCapacity: true)
         planCache.removeAll(keepingCapacity: true)
