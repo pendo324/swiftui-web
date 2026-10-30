@@ -33,7 +33,7 @@ public enum SystemSymbolGlyphs {
     public static let count = 1551
 
     public static func glyph(named name: String) -> (SymbolGlyph, SymbolGlyphOutline)? {
-        guard let glyph = table[name], let outline = outline(for: glyph.icon) else { return nil }
+        guard let glyph = table[name] ?? nearest(to: name), let outline = outline(for: glyph.icon) else { return nil }
         return (glyph, outline)
     }
 
@@ -2235,4 +2235,34 @@ zap-off|23|1 0.861 23 23.14|0 10.768 5.111 1 13.44 2.44 2 13.934 1.947 14.71 1.8
 zoom-in|32|2 2 22 22|0 19 11 2 19 15.418 15.418 19 11 19 2 6.582 19 3 15.418 3 11 2 3 6.582 6.582 3 11 3 2 15.418 3 19 6.582 19 11 3 0 21 21 1 16.65 16.65 0 11 8 1 11 14 0 8 11 1 14 11
 zoom-out|32|2 2 22 22|0 19 11 2 19 15.418 15.418 19 11 19 2 6.582 19 3 15.418 3 11 2 3 6.582 6.582 3 11 3 2 15.418 3 19 6.582 19 11 3 0 21 21 1 16.65 16.65 0 8 11 1 14 11
 """
+}
+
+extension SystemSymbolGlyphs {
+    private static let nearestIcons: [String: (icon: String, mode: Int)] = [
+        "list.bullet.clipboard": ("clipboard-list", 0),
+        "eye.slash.circle": ("eye-off", 0),
+        "figure.2": ("users", 0),
+        "location.north.circle.fill": ("navigation", 1),
+        "person.2.slash": ("users", 0),
+        "person.2.badge.gearshape": ("users", 0),
+        "person.crop.circle.badge.plus": ("user-plus", 0),
+        "person.crop.circle.badge.xmark": ("user-x", 0),
+        "person.badge.shield.checkmark": ("shield-check", 0),
+        "person.fill.questionmark": ("user", 1),
+        "plus.square.on.square": ("square-plus", 0),
+        "clock.arrow.circlepath": ("rotate-ccw", 0),
+        "photo.badge.exclamationmark": ("image", 0),
+        "envelope.badge.shield.half.filled": ("mail-warning", 0),
+        "rectangle.landscape.rotate": ("rotate-cw", 0),
+        "play.rectangle": ("square-play", 0),
+        "character.bubble": ("message-square-text", 0),
+    ]
+
+    fileprivate static func nearest(to name: String) -> SymbolGlyph? {
+        if let near = nearestIcons[name] { return SymbolGlyph(icon: near.icon, mode: near.mode) }
+        guard name.hasSuffix(".fill") else { return nil }
+        let outline = String(name.dropLast(".fill".count))
+        guard let base = table[outline] ?? nearestIcons[outline].map({ SymbolGlyph(icon: $0.icon, mode: $0.mode) }) else { return nil }
+        return SymbolGlyph(icon: base.icon, mode: max(base.mode, 1))
+    }
 }
