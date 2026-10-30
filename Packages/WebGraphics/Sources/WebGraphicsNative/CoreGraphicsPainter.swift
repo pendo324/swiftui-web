@@ -219,7 +219,7 @@ public final class CoreGraphicsPainter {
             case .drawImage(let draw):
                 drawImage(draw, in: ctx)
             case .drawBitmap(let bitmap, let rect):
-                if let image = Self.image(bitmap) { draw(image, in: rect, ctx: ctx) }
+                if let image = bitmapImage(bitmap) { draw(image, in: rect, ctx: ctx) }
             }
         }
         ctx.restoreGState()
@@ -443,6 +443,28 @@ public final class CoreGraphicsPainter {
             ctx.draw(piece, in: CGRect(x: destination.minX, y: 0, width: destination.width, height: destination.height))
         }
         ctx.restoreGState()
+    }
+
+    /// The images made of bitmaps, by the address of their pixels, with the pixels the image was made of.
+    private var bitmapImages: [UnsafeRawPointer: (pixels: [UInt8], image: CGImage)] = [:]
+    private var bitmapImageBytes = 0
+
+    private func bitmapImage(_ bitmap: DisplayBitmap) -> CGImage? {
+        guard let base = bitmap.pixels.withUnsafeBufferPointer({ $0.baseAddress }) else { return Self.image(bitmap) }
+        let key = UnsafeRawPointer(base)
+        if let kept = bitmapImages[key], kept.pixels.count == bitmap.pixels.count, kept.image.width == bitmap.width,
+           kept.image.height == bitmap.height {
+            return kept.image
+        }
+        guard let image = Self.image(bitmap) else { return nil }
+        // Each is held twice (the array, and the copy the image is over): not past some hundreds of megabytes.
+        if bitmapImageBytes + bitmap.pixels.count > 96 << 20 {
+            bitmapImages.removeAll()
+            bitmapImageBytes = 0
+        }
+        bitmapImages[key] = (bitmap.pixels, image)
+        bitmapImageBytes += bitmap.pixels.count
+        return image
     }
 
     /// A CGImage over a bitmap's straight-alpha RGBA pixels.
