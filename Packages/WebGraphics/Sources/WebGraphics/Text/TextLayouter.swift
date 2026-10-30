@@ -182,7 +182,9 @@ public struct TextLayouter {
 
         /// The rest of the text from `lo`, truncated to fit `limit` with an ellipsis.
         func truncatedPiece(_ lo: Int, limit: CGFloat) -> Piece {
-            let end = chars.count
+            let total = chars.count
+            var end = lo
+            while end < total, chars[end] != "\n" { end += 1 }
             func ellipsisWidth(_ run: Int) -> CGFloat { measure(Self.ellipsis, fonts[run]) }
             var fragments: [TextLayout.Fragment] = []
             var x: CGFloat = 0
@@ -207,7 +209,7 @@ public struct TextLayouter {
                     if half(prefixWidth(k) + ellipsisWidth(run)) <= limit { keep = k; k += 1 } else { break }
                 }
                 keep = inkEnd(lo, keep)
-                let run = keep > lo ? runOf[keep - 1] : runOf[min(lo, end - 1)]
+                let run = keep > lo ? runOf[keep - 1] : runOf[min(lo, total - 1)]
                 appendSegments(lo, keep)
                 append(Self.ellipsis, run)
             case .head:
@@ -218,14 +220,14 @@ public struct TextLayouter {
                     if half(ellipsisWidth(run) + suffixWidth(k)) <= limit { keep = k; k -= 1 } else { break }
                 }
                 keep = suffixStart(keep)
-                let run = keep < end ? runOf[keep] : runOf[min(lo, end - 1)]
+                let run = keep < end ? runOf[keep] : runOf[min(lo, total - 1)]
                 append(Self.ellipsis, run)
                 appendSegments(keep, end)
             case .middle:
                 var a = lo, b = end
                 var growPrefix = true
                 func fits(_ a: Int, _ b: Int) -> Bool {
-                    let run = a > lo ? runOf[a - 1] : runOf[min(b, end - 1)]
+                    let run = a > lo ? runOf[a - 1] : runOf[min(b, total - 1)]
                     return half(prefixWidth(a) + ellipsisWidth(run) + suffixWidth(b)) <= limit
                 }
                 while a < b {
@@ -242,14 +244,14 @@ public struct TextLayouter {
                 }
                 a = inkEnd(lo, a)
                 b = suffixStart(b)
-                let run = a > lo ? runOf[a - 1] : (b < end ? runOf[b] : runOf[min(lo, end - 1)])
+                let run = a > lo ? runOf[a - 1] : (b < end ? runOf[b] : runOf[min(lo, total - 1)])
                 appendSegments(lo, a)
                 append(Self.ellipsis, run)
                 appendSegments(b, end)
             }
             let width = min(half(x), limit)
             let shown = Array(Set(fragments.map(\.run))).sorted()
-            return Piece(lo: lo, hi: end, width: width, inkWidth: width, fragments: fragments, runsShown: shown, truncated: true)
+            return Piece(lo: lo, hi: total, width: width, inkWidth: width, fragments: fragments, runsShown: shown, truncated: true)
         }
 
         // Break the text into pieces (lines before vertical placement).
