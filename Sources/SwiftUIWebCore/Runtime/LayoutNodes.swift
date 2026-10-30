@@ -171,6 +171,8 @@ package protocol _UnaryLayoutModifier: AnyObject {
     /// The nodes painted (and hit tested) for one target: the target itself unless hidden, plus
     /// any per-target views of the modifier (`safeAreaInset` on a list).
     func paintedChildren(of target: ViewNode) -> [ViewNode]
+    /// The nodes a hit can land on for one target, in paint order: `paintedChildren(of:)`, and a background's or overlay's layers.
+    func hitChildren(of target: ViewNode) -> [ViewNode]
     func paintTarget(_ target: ViewNode, in node: ViewNode, into list: inout DisplayList, context: PaintContext)
 }
 
@@ -314,6 +316,13 @@ open class UnaryLayoutModifierNode<Content: View, Modifier: ViewModifier>:
 
     package func paintedChildren(of target: ViewNode) -> [ViewNode] { hidesTargets ? [] : [target] }
 
+    package func hitChildren(of target: ViewNode) -> [ViewNode] { paintedChildren(of: target) }
+
+    override package var hitTestChildren: [ViewNode] {
+        let targets = targets
+        return targets.count == 1 ? zOrdered(hitChildren(of: targets[0])) : []
+    }
+
     override package func paintChildren(into list: inout DisplayList, context: PaintContext) {
         for target in paintedChildren { paintTarget(target, in: self, into: &list, context: context) }
     }
@@ -359,6 +368,7 @@ package final class LayoutModifierProxy: ViewNode {
     override package var zIndex: Double { owner.zIndex(of: target) }
     override package var extendsIntoSafeArea: Bool { !owner.changesChildSize && target.extendsIntoSafeArea }
     override package var paintedChildren: [ViewNode] { owner.paintedChildren(of: target) }
+    override package var hitTestChildren: [ViewNode] { zOrdered(owner.hitChildren(of: target)) }
     override package func paintChildren(into list: inout DisplayList, context: PaintContext) {
         for node in paintedChildren { owner.paintTarget(node, in: self, into: &list, context: context) }
     }

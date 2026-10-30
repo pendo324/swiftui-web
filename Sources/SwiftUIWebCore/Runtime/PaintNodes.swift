@@ -125,6 +125,18 @@ package final class LayeredNode<Content: View, Modifier: ViewModifier, Layer: Vi
         }
     }
 
+    /// A background is behind the content and an overlay above it (a mask is not hit).
+    override package func hitChildren(of target: ViewNode) -> [ViewNode] {
+        let content = super.hitChildren(of: target)
+        if hidesTargets { return content }
+        let layerNodes = layer(for: target).layoutChildren
+        switch mode {
+        case .background: return layerNodes + content
+        case .overlay: return content + layerNodes
+        case .mask: return content
+        }
+    }
+
     override package var structuralChildren: [ViewNode] { [child] + layers }
     override package var nodeDescription: String {
         switch mode {

@@ -418,13 +418,19 @@ open class ViewNode {
     package var paintedChildren: [ViewNode] { [] }
 
     /// `paintedChildren` in painting order: stable-sorted by `zIndex`.
-    package var paintOrderedChildren: [ViewNode] {
-        let children = paintedChildren
+    package var paintOrderedChildren: [ViewNode] { zOrdered(paintedChildren) }
+
+    /// `children` stable-sorted by `zIndex`.
+    package func zOrdered(_ children: [ViewNode]) -> [ViewNode] {
         guard children.contains(where: { $0.zIndex != 0 }) else { return children }
         return children.enumerated().sorted { a, b in
             a.element.zIndex != b.element.zIndex ? a.element.zIndex < b.element.zIndex : a.offset < b.offset
         }.map(\.element)
     }
+
+    /// The nodes a hit can land on below this one, in paint order (the last is on top): what is painted, and for a view with a
+    /// background or an overlay, those as well.
+    package var hitTestChildren: [ViewNode] { paintOrderedChildren }
 
     /// A pinned header or footer: its placer skips it and the lazy container paints it last.
     package var paintsDeferred = false
