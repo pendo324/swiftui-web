@@ -335,8 +335,17 @@ package final class ListContentNode<Content: View>: LayoutNode<_ListContent<Cont
         let cards = profile.cards ? cardFrames : []
         if profile.cards {
             for card in cards {
+                let own = elements.filter { $0.kind == .row && $0.node.layoutValue(for: ListRowBackgroundKey.self) != nil
+                    && card.contains(CGPoint(x: card.midX, y: $0.frame.midY)) }
+                if !own.isEmpty {
+                    var cut = Path(context.absoluteRect(card))
+                    for element in own { cut.addRect(context.absoluteRect(element.frame.insetBy(dx: profile.margin, dy: 0))) }
+                    list.append(.save)
+                    list.append(.clipPath(cut, eoFill: true))
+                }
                 list.append(.fillPath(Path(roundedRect: context.absoluteRect(card), cornerRadius: profile.cardCornerRadius, style: .continuous),
                                       environment._groupedCard))
+                if !own.isEmpty { list.append(.restore) }
             }
         }
         // Separators first: below each element that has one, from its content's leading edge to
