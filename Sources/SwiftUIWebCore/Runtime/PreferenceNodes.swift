@@ -96,6 +96,32 @@ package final class CoordinateSpaceNode<Content: View, Name: Hashable>:
 @MainActor
 package final class GeometryReaderNode<Content: View>: LayoutNode<GeometryReader<Content>> {
     override package var readsGeometry: Bool { true }
+    /// The spaces the content has asked the proxy for geometry in, across its evaluations.
+    private var spacesRead: [CoordinateSpace] = []
+    override package func noteGeometryRead(_ space: CoordinateSpace) {
+        if !spacesRead.contains(space) { spacesRead.append(space) }
+    }
+    override package func readsPosition(against content: ViewNode) -> Bool {
+        for space in spacesRead {
+            switch space {
+            case .local:
+                continue
+            case .global:
+                return true
+            case .named:
+                // A space that is the content or in it moves with it.
+                guard let owner = ancestorCoordinateSpace(space) else { return true }
+                var up: ViewNode? = owner
+                var inside = false
+                while let node = up {
+                    if node === content { inside = true; break }
+                    up = node.parent
+                }
+                if !inside { return true }
+            }
+        }
+        return false
+    }
     /// A reader takes the whole frame under a safe-area inset and reports the inset
     /// (`proxy.safeAreaInsets`), placing its content in the safe part (`position/safe-area-geometry`).
     override package var extendsIntoSafeArea: Bool { true }

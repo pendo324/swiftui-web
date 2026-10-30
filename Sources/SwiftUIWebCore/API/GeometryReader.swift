@@ -56,18 +56,21 @@ public struct GeometryProxy {
     /// Returns the container view's bounds rectangle, converted to a defined coordinate space.
     @MainActor
     public func frame(in coordinateSpace: CoordinateSpace) -> CGRect {
-        node.frame(in: coordinateSpace)
+        node.noteGeometryRead(coordinateSpace)
+        return node.frame(in: coordinateSpace)
     }
 
     /// Returns the container view's bounds rectangle, converted to a defined coordinate space.
     @MainActor
     public func frame(in coordinateSpace: some CoordinateSpaceProtocol) -> CGRect {
-        node.frame(in: coordinateSpace.coordinateSpace)
+        node.noteGeometryRead(coordinateSpace.coordinateSpace)
+        return node.frame(in: coordinateSpace.coordinateSpace)
     }
 
     /// Returns the given coordinate space's bounds rectangle, converted to the local space.
     @MainActor
     public func bounds(of coordinateSpace: NamedCoordinateSpace) -> CGRect? {
+        node.noteGeometryRead(coordinateSpace.coordinateSpace)
         guard let space = node.ancestorCoordinateSpace(coordinateSpace.coordinateSpace) else { return nil }
         let mine = node.frameInRoot, theirs = space.frameInRoot
         return CGRect(x: theirs.minX - mine.minX, y: theirs.minY - mine.minY, width: theirs.width, height: theirs.height)

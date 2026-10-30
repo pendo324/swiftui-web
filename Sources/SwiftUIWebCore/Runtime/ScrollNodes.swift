@@ -540,7 +540,7 @@ package final class ScrollNode<Content: View>: LayoutNode<ScrollView<Content>>, 
             geometryCheckGeneration = runtime.fullLayoutCount
             // Structural descendants: a geometry reader in a background or overlay layer (a
             // fixture probe) reads the scrolled frame too.
-            contentReadsGeometry = !child.descendants(where: { $0.readsGeometry }).isEmpty
+            contentReadsGeometry = !child.descendants(where: { $0.readsGeometry && $0.readsPosition(against: child) }).isEmpty
         }
         return !contentReadsGeometry
     }

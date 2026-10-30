@@ -457,6 +457,12 @@ open class ViewNode {
     /// view holding one lays its content out on every scroll frame instead of moving it.
     package var readsGeometry: Bool { false }
 
+    /// Whether this node, which reads geometry, reads what changes when the scroll view whose content is `content` scrolls.
+    package func readsPosition(against content: ViewNode) -> Bool { readsGeometry }
+
+    /// A geometry proxy of this node was asked for geometry in `space`.
+    package func noteGeometryRead(_ space: CoordinateSpace) {}
+
     /// Moves a placed node without laying it out again (a scroll frame whose content is unchanged).
     package final func moveFrame(toOrigin origin: CGPoint) {
         frame.origin = origin
