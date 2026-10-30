@@ -66,6 +66,7 @@ open class ViewNode {
 
     package init(parent: ViewNode?, runtime: Runtime, environment: EnvironmentValues) {
         self.runtime = runtime
+        runtime.bumpTree("init")
         self.parent = parent
         self.depth = (parent?.depth ?? -1) + 1
         self.environment = environment
@@ -106,6 +107,8 @@ open class ViewNode {
 
     package func clearNeedsUpdate() {
         needsUpdate = false
+        runtime.treeVersion &+= 1
+        runtime.updateCount &+= 1
         // Every update is applied through here; a node whose view or environment changed has
         // forgotten its memoised sizes and its ancestors' as they were assigned (theirs are
         // computed from it), and the rest of the page keeps its memos across the update, where
@@ -158,6 +161,7 @@ open class ViewNode {
         needsUpdate = false
         parent = nil
         layoutParent = nil
+        runtime.bumpTree("unmount")
     }
 
     // MARK: Layout
@@ -198,6 +202,7 @@ open class ViewNode {
         defer { PlatformMetrics.current = previousMetrics }
         let size = computeSizeThatFits(proposal)
         sizeCache[proposal] = size
+        runtime.memoEpoch &+= 1
         return size
     }
 
@@ -206,11 +211,43 @@ open class ViewNode {
     /// placeholder stood. Every other node keeps its memo, where a generation bump
     /// (`Runtime.invalidateSizeMemos`) would re-measure the whole tree.
     package final func invalidateSizeMemosUpward() {
+        runtime.treeVersion &+= 1
+        let epoch = runtime.memoEpoch
         var node: ViewNode? = self
         while let current = node {
+            if current.forgottenInEpoch == epoch { return }
+            current.forgottenInEpoch = epoch
             current.invalidateSizeMemo()
             node = current.parent
         }
+    }
+
+    /// The `memoEpoch` this node's memos were last forgotten in.
+    private var forgottenInEpoch: UInt64 = 0
+
+    /// The first descendant (this node included, in structural order) of type `Kind`, kept until the tree next changes: a navigation
+    /// stack asks for each of a screen's titles and the like a score of times a frame, and each ask walked every row of it.
+    package final func firstDescendant<Kind>(_ kind: Kind.Type) -> ViewNode? {
+        let key = ObjectIdentifier(kind)
+        let version = runtime.treeVersion
+        if let kept = firstDescendants[key], kept.version == version {
+            if _verifyStructure { _checkKept(kept.node.map { [$0] } ?? [], firstMatching { $0 is Kind }.map { [$0] } ?? [], "firstDescendant(\(Kind.self)) of \(nodeDescription)") }
+            return kept.node
+        }
+        if _traceWalks { _walkCounts["firstDescendant(\(Kind.self)) missed", default: 0] += 1 }
+        let found = firstMatching { $0 is Kind }
+        firstDescendants[key] = (version, found)
+        return found
+    }
+
+    private var firstDescendants: [ObjectIdentifier: (version: UInt64, node: ViewNode?)] = [:]
+
+    private func firstMatching(_ predicate: (ViewNode) -> Bool) -> ViewNode? {
+        if predicate(self) { return self }
+        for child in structuralChildren {
+            if let found = child.firstMatching(predicate) { return found }
+        }
+        return nil
     }
 
     /// Forgets this node's memoised sizes alone.
@@ -234,6 +271,7 @@ open class ViewNode {
         if let cached = planCache[key] as? Plan { return cached }
         let plan = make()
         planCache[key] = plan
+        runtime.memoEpoch &+= 1
         return plan
     }
 

@@ -389,6 +389,12 @@ public final class Runtime {
 
     /// Incremented at the start of every layout pass; size caches are keyed by it.
     package private(set) var layoutGeneration: UInt64 = 0
+    /// Moves on whenever a size or a plan is memoised, so a node forgotten in this epoch has had its ancestors forgotten as well.
+    package var memoEpoch: UInt64 = 1
+    /// Moves on whenever a node is made, unmounted or updated: what was found by walking the tree is good until it does.
+    package var treeVersion: UInt64 = 1
+    /// How many nodes have been updated (their view or environment applied) over the run: a frame's share is what the update cost.
+    public var updateCount: UInt64 = 0
 
     /// Forgets every memoised size within a layout pass (lazy elements were just created).
     package func invalidateSizeMemos() { layoutGeneration += 1 }
