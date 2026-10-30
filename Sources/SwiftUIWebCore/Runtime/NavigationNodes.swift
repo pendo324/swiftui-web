@@ -31,6 +31,13 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
     /// animation driven by the frame subscribers, so the page is not laid out again each frame.
     private var slide: Slide?
     private var slideTween: Tween?
+    /// Where the screens are while UIKit moves them (the bridge's), in place of the tween.
+    private var externalSlide: (@MainActor () -> _StackSlide)?
+    private var externalFrame: _StackSlide?
+    package let rootToken = _ScreenToken()
+    private var handle: _StackHandle?
+    /// The stack is being made to match UIKit's: nothing is told, and nothing slides.
+    private var reconciling = false
     /// iOS (ios/search): the `searchable` field at the bottom of the top screen, and the scope
     /// bar under the hidden bar while the search is presented; laid out with the screens.
     private var searchBar: TypedNode<AnyView>?
@@ -85,15 +92,26 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
     package init(_ context: _NodeContext<_NavigationStackHost>) {
         super.init(view: context.view, parent: context.parent, runtime: context.runtime, environment: context.environment)
         self.context = _NavigationContext(stack: self)
+        if let bridge = _stackBridge {
+            handle = _StackHandle(node: self)
+            bridge.stackMounted(handle!)
+        }
         backButton = NavigationBackButtonNode(_NodeContext(view: _NavigationBackButton(), parent: self, environment: context.environment))
-        root = AnyView._makeNode(_NodeContext(view: context.view.root, parent: self, environment: contentEnvironment(large: rootLarge)))
+        root = AnyView._makeNode(_NodeContext(view: context.view.root, parent: self, environment: contentEnvironment(large: rootLarge, screen: rootToken)))
         lastValues = context.view.values
         _ = reconcile(with: context.view.values)
         settleBarModes(force: false)
+        if let bridge = _stackBridge, let handle { bridge.stackDidMount(handle) }
     }
 
-    private func contentEnvironment(large: Bool) -> EnvironmentValues {
+    /// The root and each pushed entry that has a node, as the tokens UIKit's controllers are matched by.
+    package var screenTokens: [AnyObject] {
+        screens.map { screen in screen.entry.map { $0 as AnyObject } ?? rootToken }
+    }
+
+    private func contentEnvironment(large: Bool, screen: AnyObject? = nil) -> EnvironmentValues {
         var environment = environment
+        environment._screen = screen.flatMap { token in handle.map { _ScreenLocation(token: token, stack: $0) } }
         environment._navigationContext = context
         let outer = environment.dismiss
         environment.dismiss = DismissAction { [weak self] in if self?.pop() != true { outer() } }
@@ -122,7 +140,7 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
                 }
             } else if rootLarge != actual {
                 rootLarge = actual
-                root.update(view: view.root, environment: contentEnvironment(large: actual), force: force)
+                root.update(view: view.root, environment: contentEnvironment(large: actual, screen: rootToken), force: force)
             }
         }
     }
@@ -356,7 +374,7 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
         backButton.environment = environment
         clearNeedsUpdate()
         changingScreens {
-            root.update(view: view.root, environment: contentEnvironment(large: rootLarge), force: force)
+            root.update(view: view.root, environment: contentEnvironment(large: rootLarge, screen: rootToken), force: force)
             var retired: [Entry] = []
             if view.values != lastValues {
                 lastValues = view.values
@@ -401,10 +419,10 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
             return
         }
         if let node = entry.node as? TypedNode<AnyView> {
-            node.update(view: view, environment: contentEnvironment(large: entry.largeBar), force: force)
+            node.update(view: view, environment: contentEnvironment(large: entry.largeBar, screen: entry), force: force)
         } else {
             entry.node?.unmount()
-            entry.node = AnyView._makeNode(_NodeContext(view: view, parent: self, environment: contentEnvironment(large: entry.largeBar)))
+            entry.node = AnyView._makeNode(_NodeContext(view: view, parent: self, environment: contentEnvironment(large: entry.largeBar, screen: entry)))
         }
     }
 
@@ -420,12 +438,23 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
     private func changingScreens(_ body: () -> [Entry]) {
         let before = groups.last ?? []
         let count = groups.count
+        let tokensBefore = screenTokens
         let retired = body()
         let after = groups.last ?? []
-        if groups.count > count {
-            beginSlide(push: true, lower: before, upper: after, leaving: retired)
+        let tokensAfter = screenTokens
+        var provider: (@MainActor () -> _StackSlide)?
+        if !reconciling, let handle, let bridge = _stackBridge,
+           tokensBefore.count != tokensAfter.count || !zip(tokensBefore, tokensAfter).allSatisfy({ $0 === $1 }) {
+            let animates = environment.platformProfile.isIOS && hasBeenPlaced && !before.isEmpty && !after.isEmpty && groups.count != count
+            provider = bridge.stack(handle, from: tokensBefore, to: tokensAfter, animated: animates)
+        }
+        if reconciling {
+            finishSlide()
+            for entry in retired { entry.node?.unmount() }
+        } else if groups.count > count {
+            beginSlide(push: true, lower: before, upper: after, leaving: retired, provider: provider)
         } else if groups.count < count {
-            beginSlide(push: false, lower: after, upper: before, leaving: retired)
+            beginSlide(push: false, lower: after, upper: before, leaving: retired, provider: provider)
         } else {
             for entry in retired { entry.node?.unmount() }
         }
@@ -527,25 +556,32 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
         let upperBar: Bar?
         /// Entries a pop retired, unmounted when the slide ends.
         let leaving: [Entry]
+        /// The bar over the screen beneath.
+        let lowerBar: Bar?
     }
 
-    private func beginSlide(push: Bool, lower: [ViewNode], upper: [ViewNode], leaving: [Entry]) {
+    private func beginSlide(push: Bool, lower: [ViewNode], upper: [ViewNode], leaving: [Entry], provider: (@MainActor () -> _StackSlide)? = nil) {
         finishSlide()
         guard environment.platformProfile.isIOS, hasBeenPlaced, !lower.isEmpty, !upper.isEmpty else {
             for entry in leaving { entry.node?.unmount() }
             return
         }
         let upperBar = push ? nil : bar(over: upper, index: groups.count, previousLarge: bars.last??.large ?? false)
-        slide = Slide(push: push, lower: lower, upper: upper, upperBar: upperBar, leaving: leaving)
-        slideTween = Tween(from: [0], to: [1], animation: .easeInOut(duration: PlatformMetrics.navigationPushDuration), start: runtime.animationClock)
+        let bars = self.bars
+        let lowerBar = push ? (bars.count >= 2 ? bars[bars.count - 2] : nil) : bars.last ?? nil
+        slide = Slide(push: push, lower: lower, upper: upper, upperBar: push ? bars.last ?? nil : upperBar, leaving: leaving, lowerBar: lowerBar)
+        externalSlide = provider
+        slideTween = provider != nil ? nil : Tween(from: [0], to: [1], animation: .easeInOut(duration: PlatformMetrics.navigationPushDuration), start: runtime.animationClock)
         runtime.paintAnimations += 1
         runtime.subscribeFrames(self)
     }
 
-    private func finishSlide() {
+    package func finishSlide() {
         guard let slide else { return }
         self.slide = nil
         slideTween = nil
+        externalSlide = nil
+        externalFrame = nil
         runtime.paintAnimations -= 1
         runtime.unsubscribeFrames(self)
         for entry in slide.leaving { entry.node?.unmount() }
@@ -561,12 +597,43 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
 
     /// The slide in flight with its progress, or nil once its tween ended (finishing it then).
     private var activeSlide: (Slide, Double)? {
+        externalFrame = nil
+        if let slide, let externalSlide {
+            let state = externalSlide()
+            externalFrame = state
+            return (slide, state.cover)
+        }
         guard let slide, let slideTween else { return nil }
         guard !slideTween.isFinished(at: runtime.animationClock) else {
             finishSlide()
             return nil
         }
         return (slide, slideTween.value(at: runtime.animationClock).first ?? 1)
+    }
+
+    private var lastReportedFrame = CGRect.null
+
+    /// UIKit began a transition that takes the top screen over `lower`: the slide is the bridge's, and nothing in the stack has changed.
+    package func beginExternalSlide(lower token: AnyObject, provider: @escaping @MainActor () -> _StackSlide) {
+        finishSlide()
+        let all = screens
+        let bars = self.bars
+        guard all.count >= 2, let lowerIndex = all.firstIndex(where: { screen in (screen.entry.map { $0 as AnyObject } ?? rootToken) === token }), lowerIndex < all.count - 1 else { return }
+        slide = Slide(push: false, lower: all[lowerIndex].nodes, upper: all[all.count - 1].nodes, upperBar: bars.last ?? nil, leaving: [],
+                      lowerBar: lowerIndex < bars.count ? bars[lowerIndex] : nil)
+        externalSlide = provider
+        runtime.paintAnimations += 1
+        runtime.subscribeFrames(self)
+        runtime.requestRepaint()
+    }
+
+    /// UIKit has popped what is not in `tokens`: the stack matches it, without a slide of its own.
+    package func reconcile(keepingScreens tokens: [AnyObject]) {
+        reconciling = true
+        defer { reconciling = false }
+        while let last = entries.last, last.node != nil, !tokens.contains(where: { $0 === last }) {
+            guard pop() else { break }
+        }
     }
 
     // MARK: Layout
@@ -658,6 +725,10 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
             collapseChanged = false
             bars = self.bars
         }
+        if let handle, let bridge = _stackBridge, handle.frame != lastReportedFrame {
+            lastReportedFrame = handle.frame
+            bridge.stack(handle, placedAt: lastReportedFrame)
+        }
         // The back button sits at the leading edge of the top screen's bar.
         backButton.isShown = (bars.last ?? nil)?.back ?? false
         if backButton.isShown {
@@ -678,15 +749,15 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
         let bounds = absoluteBounds(context)
         let width = bounds.width
         let parallax = PlatformMetrics.navigationPushParallax
-        let lowerBar = slide.push ? (bars.count >= 2 ? bars[bars.count - 2] : nil) : bars.last ?? nil
-        let upperBar = slide.push ? bars.last ?? nil : slide.upperBar
+        let lowerBar = slide.lowerBar
+        let upperBar = slide.upperBar
         // The upper screen's cover of the lower one: the pushed screen arriving, or the popped one still there.
         let cover = slide.push ? progress : 1 - progress
         list.append(.save)
         list.append(.clipRect(bounds))
-        paintScreen(slide.lower, bar: lowerBar, shift: -width * parallax * cover, barOpacity: 1 - cover, into: &list, context: context)
+        paintScreen(slide.lower, bar: lowerBar, shift: externalFrame?.lowerShift ?? -width * parallax * cover, barOpacity: 1 - cover, into: &list, context: context)
         if cover > 0 { list.append(.fillRect(bounds, RGBA(r: 0, g: 0, b: 0, a: PlatformMetrics.navigationPushDim * cover))) }
-        paintScreen(slide.upper, bar: upperBar, shift: width * (1 - cover), barOpacity: cover, into: &list, context: context)
+        paintScreen(slide.upper, bar: upperBar, shift: externalFrame?.upperShift ?? width * (1 - cover), barOpacity: cover, into: &list, context: context)
         list.append(.restore)
         for node in itemsBarNodes + searchChromeNodes { node.paint(into: &list, context: context.child(at: node.presentedFrame)) }
     }
@@ -817,6 +888,8 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
 
     override package func unmount() {
         finishSlide()
+        if let handle { _stackBridge?.stackUnmounted(handle) }
+        handle = nil
         for entry in entries { entry.node?.unmount() }
         entries.removeAll()
         searchBar?.unmount()

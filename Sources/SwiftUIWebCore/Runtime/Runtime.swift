@@ -696,6 +696,7 @@ public final class Runtime {
         deliverPreferences()
         syncNativeViews()
         syncHostedWindows()
+        _layoutObserver?()
     }
 
     private var environmentIsIOS: Bool { rootEnvironment.platformProfile.isIOS }

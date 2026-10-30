@@ -77,12 +77,23 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
         guard let selectedIndex, selectedIndex < tabs.count else { return nil }
         return tabs[selectedIndex].node
     }
-    private var selectedIndex: Int?
+    package private(set) var selectedIndex: Int?
+    package private(set) var tabsHandle: _TabsHandle?
+
+    /// Selects the tab, as a press on it does.
+    package func selectTab(at index: Int) {
+        guard index >= 0, index < tabs.count else { return }
+        view.selection.select(tabs[index].tag)
+    }
 
     package init(_ context: _NodeContext<_TabViewPrimitive>) {
         nextTabIdentifier += 1
         identifier = nextTabIdentifier
         super.init(view: context.view, parent: context.parent, runtime: context.runtime, environment: context.environment)
+        if let bridge = _stackBridge {
+            tabsHandle = _TabsHandle(node: self)
+            bridge.tabsMounted(tabsHandle!)
+        }
         content = AnyView._makeNode(_NodeContext(view: context.view.content, parent: self, environment: context.environment))
     }
 
@@ -308,6 +319,8 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
     override package var nodeDescription: String { "TabView" }
 
     override package func unmount() {
+        if let tabsHandle { _stackBridge?.tabsUnmounted(tabsHandle) }
+        tabsHandle = nil
         content.unmount()
         for node in titles { node.unmount() }
         for node in icons { node.unmount() }

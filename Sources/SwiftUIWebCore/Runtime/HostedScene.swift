@@ -17,6 +17,8 @@ extension Runtime: HostedScene {
     public func advanceFrame(elapsed: Double) -> Bool {
         var animating = advanceScrollAnimations(elapsed: elapsed)
         if advanceAnimations(elapsed: elapsed) { animating = true }
+        _requestFrame = { [weak self] in self?.requestRepaint() }
+        if let hook = _frameHook, hook(animationClock) { animating = true }
         if !platformHosts.isEmpty, advancePlatformHosts(elapsed: elapsed) { animating = true }
         return animating
     }
@@ -48,3 +50,9 @@ extension Runtime: HostedScene {
         root.descendants(where: { ($0 as? ColorWellNode)?.wellIdentifier == identifier }).first as? ColorWellNode
     }
 }
+
+/// Called at each frame with the animation clock, by whoever animates things of their own (UIKit's views): true while they still do.
+@MainActor public var _frameHook: (@MainActor (Double) -> Bool)?
+
+/// Asks for a frame: for when something starts to animate between two.
+@MainActor public var _requestFrame: (@MainActor () -> Void)?
