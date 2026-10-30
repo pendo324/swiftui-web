@@ -434,7 +434,7 @@ package final class PaddingNode<Content: View>: UnaryLayoutModifierNode<Content,
     }
     override package func size(forChild childSize: CGSize, proposal: ProposedViewSize) -> CGSize {
         let insets = insets
-        return CGSize(width: childSize.width + insets.horizontal, height: childSize.height + insets.vertical)
+        return CGSize(width: max(0, childSize.width + insets.horizontal), height: max(0, childSize.height + insets.vertical))
     }
     override package func childOrigin(_ child: ViewDimensions, in size: CGSize) -> CGPoint {
         CGPoint(x: insets.leading, y: insets.top)
