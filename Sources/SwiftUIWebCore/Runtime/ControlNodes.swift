@@ -130,7 +130,7 @@ package final class PickerNode: LayoutNode<_PickerHost>, _Interactive, _KeyHandl
         switch style {
         case .segmented:
             let alpha = selected ? PlatformMetrics.segmentedSelectedTextAlpha : PlatformMetrics.segmentedTextAlpha
-            color = inScopeBar ? .primary : Color.black.opacity(enabled ? alpha : alpha / 2)
+            color = inScopeBar ? .primary : Color(storage: .system(.controlInk)).opacity(enabled ? alpha : alpha / 2)
             if inScopeBar {
                 // A search's scope bar (ios/search/active): 15 pt regular in the label colour.
                 font = .system(size: PlatformMetrics.searchScopeFontSize)
@@ -145,7 +145,7 @@ package final class PickerNode: LayoutNode<_PickerHost>, _Interactive, _KeyHandl
                 color = !enabled ? Color.primary.opacity(PlatformMetrics.disabledLabelOpacity) : iOSRow ? Color.secondary : Color.accentColor
                 font = .body
             } else {
-                color = enabled ? Color.primary : Color.black.opacity(PlatformMetrics.popUpDisabledTextAlpha)
+                color = enabled ? Color.primary : Color(storage: .system(.controlInk)).opacity(PlatformMetrics.popUpDisabledTextAlpha)
             }
         }
         return AnyView(Text(title).font(font).foregroundColor(color))

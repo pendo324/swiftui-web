@@ -67,6 +67,9 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
 
     private var bottomBar: Bool { PlatformMetrics.tabBarAtBottom }
 
+    /// How many tabs make the bar the one a device draws with five (`planBottomBar`).
+    private static let wideBarTabs = 4
+
     package private(set) var tabs: [Tab] = []
     package private(set) var bar: CGRect = .zero
     private var selectedIndex: Int?
@@ -110,7 +113,8 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
             if bottomBar {
                 // The selected tab takes `tint(_:)` when set, as UIKit's tab bar takes tintColor.
                 let tint: Color = selected ? (environment._tint ?? .accentColor) : .primary
-                text = AnyView(Text(result[index].title).font(.system(size: PlatformMetrics.tabLabelSize, weight: .medium)).foregroundStyle(tint))
+                let wide = result.count >= Self.wideBarTabs
+                text = AnyView(Text(result[index].title).font(.system(size: wide ? 10.5 : PlatformMetrics.tabLabelSize, weight: wide ? .semibold : .medium)).foregroundStyle(tint))
                 let icon = AnyView(Image(systemName: result[index].symbol ?? "").font(.system(size: PlatformMetrics.tabIconSize)).foregroundStyle(tint))
                 if index < icons.count {
                     icons[index].update(view: icon, environment: environment, force: false)
@@ -129,7 +133,7 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
             } else {
                 let alpha = selected ? PlatformMetrics.segmentedSelectedTextAlpha : PlatformMetrics.segmentedTextAlpha
                 text = AnyView(Text(result[index].title).font(.system(size: PlatformMetrics.buttonLabelSize))
-                    .foregroundColor(Color.black.opacity(tabEnabled ? alpha : alpha / 2)))
+                    .foregroundColor(Color(storage: .system(.controlInk)).opacity(tabEnabled ? alpha : alpha / 2)))
             }
             if index < titles.count {
                 titles[index].update(view: text, environment: environment, force: false)
@@ -146,6 +150,19 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
     private func planBottomBar(size: CGSize) -> (tabs: [Tab], bar: CGRect, selected: Int?) {
         var tabs = collectTabs()
         let selected = tabs.firstIndex { view.selection.isSelected($0.tag) } ?? (tabs.isEmpty ? nil : 0)
+        if tabs.count >= Self.wideBarTabs {
+            let sideInset: CGFloat = 21, height: CGFloat = 62.7, inner: CGFloat = 4.3
+            let pill = CGSize(width: 82, height: height - 2 * inner)
+            let width = max(0, min(size.width - 2 * sideInset, 351))
+            let bar = CGRect(x: (size.width - width) / 2, y: size.height - PlatformMetrics.tabBarCapsuleBottomInset - height, width: width, height: height)
+            let first = pill.width / 2 + inner
+            let step = (bar.width - 2 * first) / CGFloat(tabs.count - 1)
+            for index in tabs.indices {
+                let centre = bar.minX + first + step * CGFloat(index)
+                tabs[index].segment = CGRect(x: centre - pill.width / 2, y: bar.minY + inner, width: pill.width, height: pill.height)
+            }
+            return (tabs, bar, selected)
+        }
         let inset = PlatformMetrics.tabBarCapsuleSideInset
         let bar = CGRect(x: inset, y: size.height - PlatformMetrics.tabBarCapsuleBottomInset - PlatformMetrics.tabBarCapsuleHeight,
                          width: max(0, size.width - 2 * inset), height: PlatformMetrics.tabBarCapsuleHeight)
@@ -349,11 +366,15 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
         } else if background.visibility != .hidden {
             list.append(.backdropBlur(Path(roundedRect: barRect, cornerRadius: radius), bounds: barRect, radius: PlatformMetrics.tabBarGlassSigma))
             // Dark glass in a dark window: a dark tint over what is blurred behind it, not a white one.
-            list.append(.fillRRect(barRect, cornerRadius: radius, environment._isDark ? RGBA(red: 0.11, green: 0.11, blue: 0.12, alpha: 0.5) : PlatformMetrics.tabBarCapsuleFill))
+            list.append(.fillRRect(barRect, cornerRadius: radius, environment._isDark ? RGBA(red: 1, green: 1, blue: 1, alpha: 0.13) : PlatformMetrics.tabBarCapsuleFill))
+            if environment._isDark {
+                list.append(.strokePath(Path(roundedRect: barRect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: radius - 0.5, style: .circular),
+                                        style: StrokeStyle(lineWidth: 1), RGBA(red: 1, green: 1, blue: 1, alpha: 0.1)))
+            }
         }
         if let selectedIndex, selectedIndex < tabs.count {
             let pill = context.absoluteRect(tabs[selectedIndex].segment)
-            list.append(.fillRRect(pill, cornerRadius: pill.height / 2, black(PlatformMetrics.tabPillAlpha)))
+            list.append(.fillRRect(pill, cornerRadius: pill.height / 2, environment._isDark ? RGBA(red: 0, green: 0, blue: 0, alpha: 0.6) : black(PlatformMetrics.tabPillAlpha)))
         }
         for tab in tabs {
             if let icon = tab.icon { icon.paint(into: &list, context: context.child(at: icon.presentedFrame)) }
@@ -372,7 +393,7 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
     package func pressEnded(inside: Bool) {}
 
     package func pressEnded(inside: Bool, at point: CGPoint) {
-        guard inside, enabled, let tab = tabs.first(where: { $0.segment.contains(point) }), tab.isEnabled else { return }
+        guard inside, enabled, let tab = tabs.filter({ $0.segment.contains(point) }).min(by: { abs($0.segment.midX - point.x) < abs($1.segment.midX - point.x) }), tab.isEnabled else { return }
         view.selection.select(tab.tag)
         runtime.setNeedsDisplay()
     }

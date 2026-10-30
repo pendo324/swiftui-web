@@ -36,7 +36,7 @@ package final class MenuButtonNode: LayoutNode<_MenuHost>, _Interactive {
             return environment
         }
         environment.font = .system(size: PlatformMetrics.buttonLabelSize)
-        if !enabled { environment.foregroundColor = Color.black.opacity(PlatformMetrics.popUpDisabledTextAlpha) }
+        if !enabled { environment.foregroundColor = Color(storage: .system(.controlInk)).opacity(PlatformMetrics.popUpDisabledTextAlpha) }
         return environment
     }
 
