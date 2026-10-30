@@ -65,8 +65,9 @@ package enum StackLayoutEngine {
             let ordered = group.enumerated().sorted { a, b in
                 a.element.flexibility == b.element.flexibility ? a.offset < b.offset : a.element.flexibility < b.element.flexibility
             }.map(\.element)
+            let fits = ordered.allSatisfy { $0.maximum.isFinite } && ordered.reduce(0) { $0 + $1.maximum } <= groupAvailable + 0.01
             for (k, measurement) in ordered.enumerated() {
-                let share = groupAvailable / CGFloat(ordered.count - k)
+                let share = fits ? max(groupAvailable / CGFloat(ordered.count - k), measurement.maximum) : groupAvailable / CGFloat(ordered.count - k)
                 let size: CGSize
                 if measurement.maximum.isFinite, measurement.minimum == measurement.maximum
                     || (share >= measurement.maximum && isBounded(subviews[measurement.index], axis: axis, maximum: measurement.maximum, crossProposal: crossProposal)) {
