@@ -814,7 +814,22 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
         // `toolbarBackground(_, for: .navigationBar)`: a style (or the window colour when
         // `.visible`) fills the bar's band behind the title and items; `.hidden` leaves iOS 26's
         // bare top and no glass (sw-toolbar, unmeasured).
-        let background = runtime.toolbarBackground(for: .navigationBar)
+        let screen = groups.last ?? []
+        var background: (style: AnyShapeStyle?, visibility: Visibility?) = (nil, nil)
+        for source in runtime.toolbarBackgrounds where source.node?.isMounted == true {
+            guard source.modifier.bars.contains(where: { $0 == .navigationBar || $0 == .automatic }) else { continue }
+            var current = source.node
+            var ours = true
+            while let candidate = current {
+                if screen.contains(where: { $0 === candidate }) { break }
+                // Under this stack but not on its top screen, or under another stack: not this bar's.
+                if candidate === self || type(of: candidate) == type(of: self) { ours = false; break }
+                current = candidate.parent
+            }
+            guard ours else { continue }
+            if let style = source.modifier.style { background.style = style }
+            if let visibility = source.modifier.visibility { background.visibility = visibility }
+        }
         if let style = background.style {
             style._fill(Path(band), in: band, eoFill: false, environment: environment, scale: context.scale, into: &list)
         } else if background.visibility == .visible {
