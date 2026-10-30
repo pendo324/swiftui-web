@@ -36,6 +36,8 @@ package final class ForEachNode<Data: RandomAccessCollection, ID: Hashable, Cont
     /// placeholders until they scroll into view (Runtime/LazyNodes.swift).
     package private(set) var lazyAxis: Axis?
     private var estimate: (generation: UInt64, proposal: ProposedViewSize, size: CGSize)?
+    /// The proposal a placeholder was last asked for a size with: the one the container asks every element with.
+    private var lastEstimateProposal: ProposedViewSize?
 
     init(_ context: _NodeContext<ForEach<Data, ID, Content>>) {
         super.init(view: context.view, parent: context.parent, runtime: context.runtime,
@@ -214,9 +216,47 @@ package final class ForEachNode<Data: RandomAccessCollection, ID: Hashable, Cont
         return true
     }
 
+    package func dematerialize(outside keep: CGRect, contentOrigin origin: CGPoint) -> Bool {
+        guard let axis = lazyAxis, let proposal = lastEstimateProposal else { return false }
+        let across: Axis = axis == .vertical ? .horizontal : .vertical
+        var far: [Int] = []
+        for (index, entry) in entries.enumerated() {
+            guard let node = entry.node, node.isMounted, !node.isExiting else { continue }
+            let nodes = node.layoutChildren
+            guard !nodes.isEmpty, nodes.allSatisfy(\.hasBeenPlaced) else { continue }
+            var rect = CGRect.null
+            for child in nodes {
+                let frame = child.frameInRoot
+                rect = rect.union(CGRect(x: frame.minX - origin.x, y: frame.minY - origin.y, width: frame.width, height: frame.height))
+            }
+            if !rect.intersects(keep) { far.append(index) }
+        }
+        // A few at a time would cost a layout each.
+        guard far.count >= 6 else { return false }
+        var measured = ProposedViewSize.unspecified
+        measured[across] = proposal[across]
+        for index in far {
+            guard let node = entries[index].node else { continue }
+            var size = CGSize.zero
+            for child in node.layoutChildren {
+                let one = child.sizeThatFits(measured)
+                size[axis] += one[axis]
+                size[across] = max(size[across], one[across])
+            }
+            let placeholder = LazyPlaceholderNode(owner: self)
+            placeholder.remembered = (axis, proposal[across], size)
+            node.unmount()
+            entries[index].node = nil
+            entries[index].placeholder = placeholder
+        }
+        didMaterialize()
+        return true
+    }
+
     /// The average size of the created elements for `proposal`: their layout children summed
     /// along the lazy axis and the widest across it.
     package func estimatedSize(for proposal: ProposedViewSize) -> CGSize {
+        lastEstimateProposal = proposal
         if let estimate, estimate.generation == runtime.fullLayoutCount, estimate.proposal == proposal { return estimate.size }
         let axis = lazyAxis ?? .vertical
         var total = CGSize.zero

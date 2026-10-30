@@ -16,6 +16,9 @@ package protocol _LazyMaterializing: AnyObject {
     func materialize(id: AnyHashable) -> Bool
     /// Whether a placeholder stands for the element identified by `id`.
     func hasPlaceholder(id: AnyHashable) -> Bool
+    /// Lets go of the elements whose frames are all outside `keep` (content coordinates), each becoming a placeholder of the size it had;
+    /// true when it let go of any. It waits until there are enough of them for a layout to be worth it.
+    func dematerialize(outside keep: CGRect, contentOrigin origin: CGPoint) -> Bool
 }
 
 /// The owner of placeholders: estimates their size from the elements it has created.
@@ -37,6 +40,8 @@ public struct _LazyPlaceholder: View {
 @MainActor
 package final class LazyPlaceholderNode: LayoutNode<_LazyPlaceholder> {
     private unowned let owner: any _LazyEstimating
+    /// The size the element this stands for had when it was let go of, for the proposal across the lazy axis it was measured for.
+    package var remembered: (axis: Axis, cross: CGFloat?, size: CGSize)?
 
     init(owner: any _LazyEstimating & ViewNode) {
         self.owner = owner
@@ -44,7 +49,11 @@ package final class LazyPlaceholderNode: LayoutNode<_LazyPlaceholder> {
     }
 
     override package func computeSizeThatFits(_ proposal: ProposedViewSize) -> CGSize {
-        owner.estimatedSize(for: proposal)
+        if let remembered {
+            let across: Axis = remembered.axis == .vertical ? .horizontal : .vertical
+            if proposal[across] == remembered.cross { return remembered.size }
+        }
+        return owner.estimatedSize(for: proposal)
     }
 
     override package var nodeDescription: String { "LazyPlaceholder" }

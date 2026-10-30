@@ -220,6 +220,7 @@ package final class ScrollNode<Content: View>: LayoutNode<ScrollView<Content>>, 
         contentOffset = clamped(contentOffset)
         placeContent(proposal: contentProposal)
         materializeLazyContent(proposal: contentProposal)
+        dematerializeLazyContent(proposal: contentProposal)
         layoutRefreshIndicator()
         refreshTargets()
         applyPositionBinding()
@@ -303,6 +304,25 @@ package final class ScrollNode<Content: View>: LayoutNode<ScrollView<Content>>, 
             contentOffset = clamped(contentOffset)
             placeContent(proposal: proposal)
         }
+    }
+
+    /// Lets go of the lazy elements more than two viewports from the one on screen, and lays the content out again with their
+    /// placeholders (of the same sizes) when it did.
+    private func dematerializeLazyContent(proposal: ProposedViewSize) {
+        let providers = lazyProviders
+        guard !providers.isEmpty else { return }
+        var keep = lazyWindow
+        if axes.contains(.horizontal) { keep = keep.insetBy(dx: -frame.width, dy: 0) }
+        if axes.contains(.vertical) { keep = keep.insetBy(dx: 0, dy: -frame.height) }
+        let origin = child.frameInRoot.origin
+        var changed = false
+        for provider in providers where provider.dematerialize(outside: keep, contentOrigin: origin) { changed = true }
+        guard changed else { return }
+        cachedLazyProviders = nil
+        contentSize = child.sizeThatFits(proposal)
+        lastContentSize = contentSize
+        contentOffset = clamped(contentOffset)
+        placeContent(proposal: proposal)
     }
 
     /// Whether the offset moved lazy placeholders into the window (a frame must lay out).
