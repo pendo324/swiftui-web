@@ -32,7 +32,7 @@ package final class FocusedValueNode<Content: View>: TypedNode<ModifiedContent<C
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "FocusedValue" }
 }
 

@@ -852,7 +852,7 @@ package final class ScrollViewReaderNode<Content: View>: TypedNode<ScrollViewRea
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "ScrollViewReader" }
 }
 

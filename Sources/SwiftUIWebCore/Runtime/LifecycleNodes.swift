@@ -30,7 +30,7 @@ package final class AppearanceActionNode<Content: View>: TypedNode<ModifiedConte
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "OnAppear" }
 }
 
@@ -74,7 +74,7 @@ package final class TaskNode<Content: View>: TypedNode<ModifiedContent<Content, 
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "Task" }
 }
 
@@ -108,7 +108,7 @@ package final class OnReceiveNode<Content: View>: TypedNode<ModifiedContent<Cont
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "OnReceive" }
 }
 
@@ -138,7 +138,7 @@ package final class OpenURLHandlerNode<Content: View>: TypedNode<ModifiedContent
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "OnOpenURL" }
 }
 
@@ -172,7 +172,7 @@ package final class ContinueActivityHandlerNode<Content: View>: TypedNode<Modifi
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "OnContinueUserActivity" }
 }
 

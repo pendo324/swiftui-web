@@ -34,6 +34,6 @@ package final class IDNode<Content: View, ID: Hashable>: TypedNode<IDView<Conten
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "ID(\(view.id))" }
 }

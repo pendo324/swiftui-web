@@ -87,6 +87,8 @@ package final class ForEachNode<Data: RandomAccessCollection, ID: Hashable, Cont
         for nodes in placeholders.values {
             for node in nodes { node.unmount() }
         }
+        // Elements that are the same nodes in another order, or fewer of them, are no node made or let go of.
+        if next.count != entries.count || zip(next, entries).contains(where: { $0.id != $1.id }) { runtime.bumpTree("foreach order") }
         entries = next
     }
 
@@ -152,6 +154,7 @@ package final class ForEachNode<Data: RandomAccessCollection, ID: Hashable, Cont
     /// the page is re-measured.
     private func didMaterialize() {
         estimate = nil
+        runtime.bumpTree("materialize")
         for entry in entries { entry.placeholder?.invalidateSizeMemo() }
         invalidateSizeMemosUpward()
     }
@@ -213,7 +216,7 @@ package final class ForEachNode<Data: RandomAccessCollection, ID: Hashable, Cont
     package var _entries: [(AnyHashable, ViewNode)] { entries.map { (AnyHashable($0.id), $0.view) } }
 
     override package var structuralChildren: [ViewNode] { entries.map(\.view) }
-    override package var layoutChildren: [ViewNode] { entries.flatMap { $0.view.layoutChildren } }
+    override package var computeLayoutChildren: [ViewNode] { entries.flatMap { $0.view.layoutChildren } }
     override package var nodeDescription: String { "ForEach(\(entries.count))" }
 }
 
@@ -262,7 +265,7 @@ package final class SectionNode<Parent: View, Content: View, Footer: View>:
     }
 
     override package var structuralChildren: [ViewNode] { [menuHeader ?? header, content, footer] }
-    override package var layoutChildren: [ViewNode] {
+    override package var computeLayoutChildren: [ViewNode] {
         (menuHeader ?? header).layoutChildren + content.layoutChildren + footer.layoutChildren
     }
     override package var nodeDescription: String { "Section" }

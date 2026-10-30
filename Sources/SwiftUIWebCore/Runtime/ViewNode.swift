@@ -107,7 +107,7 @@ open class ViewNode {
 
     package func clearNeedsUpdate() {
         needsUpdate = false
-        runtime.treeVersion &+= 1
+        if !runtime.isLayingOut { runtime.bumpTree("update") }
         runtime.updateCount &+= 1
         // Every update is applied through here; a node whose view or environment changed has
         // forgotten its memoised sizes and its ancestors' as they were assigned (theirs are
@@ -135,7 +135,22 @@ open class ViewNode {
     /// The nodes this subtree contributes to the enclosing layout container (invariant 2).
     /// Lists (`TupleView`, `Group`, `Optional`, `_ConditionalContent`, environment modifiers)
     /// contribute their children; layout-participating nodes contribute themselves.
-    package var layoutChildren: [ViewNode] { [self] }
+    package final var layoutChildren: [ViewNode] {
+        guard runtime.isLayingOut else { return computeLayoutChildren }
+        let version = runtime.treeVersion
+        if let kept = keptLayoutChildren, kept.version == version {
+            if _verifyStructure { _checkKept(kept.nodes, computeLayoutChildren, "layoutChildren of \(nodeDescription)") }
+            return kept.nodes
+        }
+        let nodes = computeLayoutChildren
+        keptLayoutChildren = (version, nodes)
+        return nodes
+    }
+
+    private var keptLayoutChildren: (version: UInt64, nodes: [ViewNode])?
+
+    /// What `layoutChildren` is made of: the node itself, for a node that takes a place in a layout of its own.
+    package var computeLayoutChildren: [ViewNode] { [self] }
 
     /// Where this node's painted content sits relative to its frame (an `offset` effect moves
     /// hit testing with it).
@@ -211,7 +226,6 @@ open class ViewNode {
     /// placeholder stood. Every other node keeps its memo, where a generation bump
     /// (`Runtime.invalidateSizeMemos`) would re-measure the whole tree.
     package final func invalidateSizeMemosUpward() {
-        runtime.treeVersion &+= 1
         let epoch = runtime.memoEpoch
         var node: ViewNode? = self
         while let current = node {
@@ -632,7 +646,7 @@ package final class CompositeNode<V: View>: TypedNode<V> {
     }
 
     override package var structuralChildren: [ViewNode] { child.map { [$0] } ?? [] }
-    override package var layoutChildren: [ViewNode] { child?.layoutChildren ?? [] }
+    override package var computeLayoutChildren: [ViewNode] { child?.layoutChildren ?? [] }
 }
 
 // MARK: - Observation

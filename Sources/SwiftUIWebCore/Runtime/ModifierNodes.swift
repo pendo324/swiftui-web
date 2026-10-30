@@ -81,7 +81,7 @@ package final class ModifierBodyNode<Content: View, Modifier: ViewModifier>:
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "Modifier<\(_shortTypeName(Modifier.self))>" }
 }
 
@@ -129,7 +129,7 @@ package final class ModifierContentNode<Modifier: ViewModifier>: TypedNode<_View
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "ModifierContent" }
 }
 
@@ -191,6 +191,6 @@ package final class EnvironmentModifierNode<Content: View, Modifier: ViewModifie
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "Environment<\(_shortTypeName(Modifier.self))>" }
 }

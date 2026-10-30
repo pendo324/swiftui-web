@@ -614,7 +614,7 @@ package final class PresentationNode: ViewNode {
     }
 
     override package var structuralChildren: [ViewNode] { [content] }
-    override package var layoutChildren: [ViewNode] { [] }
+    override package var computeLayoutChildren: [ViewNode] { [] }
     /// The content's layout nodes, where the semantics walk starts (it follows painted children,
     /// which only layout nodes have); the toolbar's before them.
     package var semanticsRoots: [ViewNode] { (toolbarBar?.layoutChildren ?? []) + content.layoutChildren }

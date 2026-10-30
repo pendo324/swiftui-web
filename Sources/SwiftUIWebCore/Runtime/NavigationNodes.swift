@@ -21,7 +21,7 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
         init(kind: Kind, view: AnyView?) { self.kind = kind; self.view = view }
     }
 
-    package private(set) var entries: [Entry] = []
+    package private(set) var entries: [Entry] = [] { didSet { runtime.bumpTree("navigation entries") } }
     private var lastValues: [AnyHashable] = []
     /// Destination builders registered by `navigationDestination(for:)` in the subtree, by type.
     package var destinations: [ObjectIdentifier: _NavigationDestinationBuilder] = [:]

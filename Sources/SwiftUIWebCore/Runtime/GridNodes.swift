@@ -27,7 +27,7 @@ package final class GridRowNode<Content: View>: TypedNode<GridRow<Content>>, _Gr
     package var _cellNodes: [ViewNode] { child.layoutChildren }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "GridRow" }
 }
 

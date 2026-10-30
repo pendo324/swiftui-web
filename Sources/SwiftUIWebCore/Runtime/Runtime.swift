@@ -393,6 +393,11 @@ public final class Runtime {
     package var memoEpoch: UInt64 = 1
     /// Moves on whenever a node is made, unmounted or updated: what was found by walking the tree is good until it does.
     package var treeVersion: UInt64 = 1
+    /// `treeVersion` moves on, and says why under `SWIFTUI_TRACE_WALKS`.
+    package func bumpTree(_ why: StaticString) {
+        treeVersion &+= 1
+        if _traceWalks { _walkCounts["tree changed: \(why)", default: 0] += 1 }
+    }
     /// How many nodes have been updated (their view or environment applied) over the run: a frame's share is what the update cost.
     public var updateCount: UInt64 = 0
 
@@ -726,7 +731,7 @@ package final class RootNode: ViewNode {
     }
 
     override package var structuralChildren: [ViewNode] { child.map { [$0] } ?? [] }
-    override package var layoutChildren: [ViewNode] { child?.layoutChildren ?? [] }
+    override package var computeLayoutChildren: [ViewNode] { child?.layoutChildren ?? [] }
     override package var nodeDescription: String { "Root" }
 }
 

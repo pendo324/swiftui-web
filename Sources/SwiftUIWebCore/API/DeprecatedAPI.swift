@@ -181,6 +181,6 @@ package final class EnvironmentalModifierNode<Content: View, Modifier: Environme
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "EnvironmentalModifier" }
 }

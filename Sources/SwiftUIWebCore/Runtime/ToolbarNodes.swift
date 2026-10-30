@@ -241,7 +241,7 @@ package final class ToolbarChromeNode: ViewNode {
 
     override package var isLayoutNode: Bool { true }
     override package var structuralChildren: [ViewNode] { [content] }
-    override package var layoutChildren: [ViewNode] { content.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { content.layoutChildren }
     override package var paintedChildren: [ViewNode] { content.layoutChildren }
     override package var nodeDescription: String { "Toolbar" }
 

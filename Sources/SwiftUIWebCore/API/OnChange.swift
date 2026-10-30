@@ -70,6 +70,6 @@ package final class ValueActionNode<Content: View, Value: Equatable>: TypedNode<
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "OnChange" }
 }

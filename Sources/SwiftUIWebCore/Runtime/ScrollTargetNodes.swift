@@ -36,7 +36,7 @@ package final class ScrollGeometryChangeNode<Content: View, Value: Equatable>: T
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "OnScrollGeometryChange" }
 }
 
@@ -63,7 +63,7 @@ package final class ScrollPhaseChangeNode<Content: View>: TypedNode<ModifiedCont
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "OnScrollPhaseChange" }
 }
 
@@ -89,7 +89,7 @@ package final class ScrollPositionNode<Content: View>: TypedNode<ModifiedContent
     package func userScrolled(to id: AnyHashable?) { view.modifier.write(id) }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "ScrollPosition" }
 }
 
@@ -144,7 +144,7 @@ package final class ScrollTargetLayoutNode<Content: View>: TypedNode<ModifiedCon
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "ScrollTargetLayout" }
 }
 
@@ -181,6 +181,6 @@ package final class ScrollIndicatorsFlashNode<Content: View, Value: Equatable>: 
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "ScrollIndicatorsFlash" }
 }

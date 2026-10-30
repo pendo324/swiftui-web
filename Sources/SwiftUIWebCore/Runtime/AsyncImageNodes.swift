@@ -88,6 +88,6 @@ package final class AsyncImageNode<Content: View>: TypedNode<AsyncImage<Content>
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "AsyncImage" }
 }

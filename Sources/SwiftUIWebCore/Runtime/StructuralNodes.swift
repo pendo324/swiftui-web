@@ -14,7 +14,7 @@ package final class EmptyNode: TypedNode<EmptyView> {
         super.init(view: context.view, parent: context.parent, runtime: context.runtime,
                    environment: context.environment)
     }
-    override package var layoutChildren: [ViewNode] { [] }
+    override package var computeLayoutChildren: [ViewNode] { [] }
     override package var nodeDescription: String { "Empty" }
 }
 
@@ -48,7 +48,7 @@ package final class TupleNode<T>: TypedNode<TupleView<T>> {
     }
 
     override package var structuralChildren: [ViewNode] { children }
-    override package var layoutChildren: [ViewNode] { children.flatMap(\.layoutChildren) }
+    override package var computeLayoutChildren: [ViewNode] { children.flatMap(\.layoutChildren) }
     override package var nodeDescription: String { "Tuple(\(children.count))" }
 }
 
@@ -116,7 +116,7 @@ package final class ConditionalNode<TrueContent: View, FalseContent: View>:
     }
 
     override package var structuralChildren: [ViewNode] { [activeNode] }
-    override package var layoutChildren: [ViewNode] { activeNode.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { activeNode.layoutChildren }
     override package var nodeDescription: String {
         switch branch! {
         case .first: return "Conditional(first)"
@@ -168,7 +168,7 @@ package final class OptionalNode<Wrapped: View>: TypedNode<Wrapped?> {
     }
 
     override package var structuralChildren: [ViewNode] { child.map { [$0] } ?? [] }
-    override package var layoutChildren: [ViewNode] { child?.layoutChildren ?? [] }
+    override package var computeLayoutChildren: [ViewNode] { child?.layoutChildren ?? [] }
     override package var nodeDescription: String { child == nil ? "Optional(none)" : "Optional(some)" }
 }
 
@@ -199,7 +199,7 @@ package final class GroupNode<Content: View>: TypedNode<Group<Content>> {
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "Group" }
 }
 
@@ -261,6 +261,6 @@ package final class AnyViewNode: TypedNode<AnyView> {
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "AnyView(\(_shortTypeName(childType)))" }
 }

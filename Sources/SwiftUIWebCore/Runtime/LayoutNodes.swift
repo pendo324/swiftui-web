@@ -6,7 +6,7 @@
 @MainActor
 open class LayoutNode<V: View>: TypedNode<V> {
     override package var isLayoutNode: Bool { true }
-    override package var layoutChildren: [ViewNode] { [self] }
+    override package var computeLayoutChildren: [ViewNode] { [self] }
 }
 
 /// Node for a primitive view without children. Default sizing: the proposal, with unspecified
@@ -212,7 +212,7 @@ open class UnaryLayoutModifierNode<Content: View, Modifier: ViewModifier>:
         targets.first?.layoutValue(for: key) ?? K.defaultValue
     }
 
-    override package var layoutChildren: [ViewNode] {
+    override package var computeLayoutChildren: [ViewNode] {
         let targets = targets
         if targets.count == 1 { return [self] }
         return targets.map { target in

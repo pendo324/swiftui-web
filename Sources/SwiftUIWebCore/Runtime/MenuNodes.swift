@@ -367,7 +367,7 @@ package final class MenuPickerRowNode: ViewNode, _Interactive {
     }
 
     override package var isLayoutNode: Bool { true }
-    override package var layoutChildren: [ViewNode] { [self] }
+    override package var computeLayoutChildren: [ViewNode] { [self] }
 
     private var insets: (leading: CGFloat, trailing: CGFloat) { (PlatformMetrics.menuCheckWidth, PlatformMetrics.menuTrailingPadding) }
 

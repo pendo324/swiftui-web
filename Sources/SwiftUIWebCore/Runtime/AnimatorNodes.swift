@@ -70,7 +70,7 @@ package final class PhaseAnimatorNode<Phase: Equatable, Content: View>: TypedNod
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "PhaseAnimator" }
 }
 
@@ -146,6 +146,6 @@ package final class KeyframeAnimatorNode<Value, KeyframePath: Keyframes, Content
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "KeyframeAnimator" }
 }

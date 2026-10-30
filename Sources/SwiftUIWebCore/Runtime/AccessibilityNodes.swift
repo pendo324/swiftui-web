@@ -20,7 +20,7 @@ package final class AccessibilityNode<Content: View>: TypedNode<ModifiedContent<
     package var attributes: AccessibilityAttributes { view.modifier.attributes }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "Accessibility" }
 }
 
@@ -67,7 +67,7 @@ package final class AccessibilityActionsNode<Content: View>: TypedNode<ModifiedC
     }
 
     override package var structuralChildren: [ViewNode] { [child] }
-    override package var layoutChildren: [ViewNode] { child.layoutChildren }
+    override package var computeLayoutChildren: [ViewNode] { child.layoutChildren }
     override package var nodeDescription: String { "AccessibilityActions" }
 }
 
