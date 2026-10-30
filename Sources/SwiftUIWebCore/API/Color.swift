@@ -51,6 +51,11 @@ public struct Color: Hashable, Sendable {
         self.init(storage: .rgba(red: red, green: green, blue: blue, opacity: opacity))
     }
 
+    /// A color that is `light` in a light window and `dark` in a dark one.
+    public init(_dynamicLight light: RGBA, dark: RGBA) {
+        self.init(storage: .dynamic(light: light, dark: dark))
+    }
+
     /// Creates a color from a color set in the app's asset catalogs; the bundle is ignored
     /// (every catalog of the app is in one manifest).
     public init(_ name: String, bundle: Bundle? = nil) {

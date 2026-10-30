@@ -331,10 +331,14 @@ public final class Runtime {
 
     /// Moves the root environment to the effective scheme when it changed, re-applying the
     /// root view so every node resolves its colours again.
+    /// Told when the window's appearance changes, before the tree is applied it.
+    public var onColorSchemeChange: ((ColorScheme) -> Void)?
+
     private func applyColorScheme() {
         let effective = preferredColorScheme ?? hostColorScheme
         guard effective != rootEnvironment.colorScheme else { return }
         rootEnvironment.colorScheme = effective
+        onColorSchemeChange?(effective)
         root.environment = rootEnvironment
         root.reapply?(rootEnvironment)
         sizesInvalidated = true
