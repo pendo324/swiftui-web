@@ -659,7 +659,7 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
         backButton.isShown = (bars.last ?? nil)?.back ?? false
         if backButton.isShown {
             let inset = PlatformMetrics.navigationBackButtonInset
-            backButton.place(at: CGPoint(x: inset, y: inset + barTopInset), anchor: .topLeading, proposal: .unspecified, by: self)
+            backButton.place(at: CGPoint(x: PlatformMetrics.navigationBackButtonLeadingInset, y: inset + barTopInset), anchor: .topLeading, proposal: .unspecified, by: self)
         }
     }
 
@@ -868,7 +868,7 @@ package final class NavigationBackButtonNode: LeafNode<_NavigationBackButton>, _
     package func paintLook(into list: inout DisplayList, at barOrigin: CGPoint, opacity: Double = 1, context: PaintContext) {
         let inset = PlatformMetrics.navigationBackButtonInset
         let diameter = PlatformMetrics.navigationBackButtonDiameter
-        let circle = context.absoluteRect(CGRect(x: barOrigin.x - context.origin.x + inset, y: barOrigin.y - context.origin.y + inset, width: diameter, height: diameter))
+        let circle = context.absoluteRect(CGRect(x: barOrigin.x - context.origin.x + PlatformMetrics.navigationBackButtonLeadingInset, y: barOrigin.y - context.origin.y + inset, width: diameter, height: diameter))
         let fill = environment.colorScheme == .dark ? PlatformMetrics.navigationBackFillDark : PlatformMetrics.navigationBackFill
         list.append(.fillRRect(circle, cornerRadius: diameter / 2, fill.multiplyingAlpha(by: opacity)))
         if isPressed { list.append(.fillRRect(circle, cornerRadius: diameter / 2, environment._ink(PlatformMetrics.navigationBackPressedAlpha * opacity))) }
@@ -878,7 +878,7 @@ package final class NavigationBackButtonNode: LeafNode<_NavigationBackButton>, _
         chevron.move(to: CGPoint(x: centre.x + size.width / 2, y: centre.y - size.height / 2))
         chevron.addLine(to: CGPoint(x: centre.x - size.width / 2, y: centre.y))
         chevron.addLine(to: CGPoint(x: centre.x + size.width / 2, y: centre.y + size.height / 2))
-        let tint = (environment.isEnabled ? Color.accentColor.resolve(in: environment) : environment._ink(PlatformMetrics.disabledLabelOpacity)).multiplyingAlpha(by: opacity)
+        let tint = (environment.isEnabled ? environment._ink(1) : environment._ink(PlatformMetrics.disabledLabelOpacity)).multiplyingAlpha(by: opacity)
         list.append(.strokePath(chevron, style: StrokeStyle(lineWidth: PlatformMetrics.navigationBackChevronStroke, lineCap: .round, lineJoin: .round), tint))
     }
 }

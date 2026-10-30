@@ -33,6 +33,7 @@ public func _iosBarItemSize(_ content: CGSize, height: CGFloat) -> CGSize {
 /// A button of a bar: its label with a button's padding, at least a button's size.
 struct _IOSBarButtonBody<Label: View>: View {
     @Environment(\._iosBarItemHeight) private var height
+    @Environment(\._iosBarGrouped) private var grouped
     let label: Label
     let isPressed: Bool
     let prominent: Bool
@@ -41,8 +42,8 @@ struct _IOSBarButtonBody<Label: View>: View {
         label
             .environment(\._inIOSBarItem, false)
             .fontWeight(prominent ? .semibold : nil)
-            .padding(.horizontal, PlatformMetrics.navigationBarItemPadding)
-            .frame(minWidth: height, minHeight: height, maxHeight: height)
+            .modifier(_BarButtonPadding(grouped: grouped))
+            .frame(minWidth: grouped ? nil : height, minHeight: height, maxHeight: height)
             .opacity(isPressed ? 0.6 : 1)
     }
 }

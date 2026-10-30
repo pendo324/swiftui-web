@@ -831,7 +831,7 @@ package final class PlatformMetricsTable: @unchecked Sendable {
     // the body size (semibold for a confirmation action), 12 pt of pill either side of it.
     package var navigationBarItemTop: CGFloat = 14
     package var navigationBarItemHeight: CGFloat = 36
-    package var navigationBarItemInset: CGFloat = 20
+    package var navigationBarItemInset: CGFloat = 16.3
     package var navigationBarItemPadding: CGFloat = 12
     package var navigationBarItemSpacing: CGFloat = 8                  // between two pills of a group (unmeasured)
     // A navigation stack inside a sheet (ios/sheet/nav): its bar, title and items sit 5.5 lower
@@ -839,13 +839,15 @@ package final class PlatformMetricsTable: @unchecked Sendable {
     // top, under the large title at 122; 99 and 116.5 at the window's top).
     package var sheetNavigationBarTopInset: CGFloat = 0
     package var navigationBackButtonInset: CGFloat = 10
+    /// How far the back button's circle is from the bar's leading edge (its inset from the top is `navigationBackButtonInset`).
+    package var navigationBackButtonLeadingInset: CGFloat = 16.3
     package var navigationBackButtonDiameter: CGFloat = 44
     package var navigationBackFill = RGBA(r: 246, g: 246, b: 246, a: 0.66)    // white → 249.5, the grey ground → 243
     package var navigationBackFillDark = RGBA(r: 70, g: 70, b: 70, a: 0.66)   // unmeasured
     package var navigationBackPressedAlpha = 0.1
     package var navigationBackChevronSize = CGSize(width: 8, height: 16)      // tip to tip; 11 × 19 with the stroke
     package var navigationBackChevronOffset = CGPoint(x: -1.5, y: 0.5)        // its centre from the circle's
-    package var navigationBackChevronStroke: CGFloat = 3
+    package var navigationBackChevronStroke: CGFloat = 2.6
     package var navigationPushDuration = 0.35
     package var navigationPushParallax: CGFloat = 0.3                         // the lower screen's travel, as a fraction of the width
     package var navigationPushDim = 0.1                                       // black over the lower screen at the end of a push

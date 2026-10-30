@@ -457,6 +457,7 @@ struct _IOSBarItemsView: View {
                         .environment(\._inIOSBarItem, true)
                         .buttonStyle(_IOSBarButtonStyle(prominent: entry.element.placement.isProminentOnIOS))
                         .fixedSize(horizontal: true, vertical: false)
+                        .frame(minWidth: itemHeight)
                 }
             }
             if group == .principal {
@@ -481,6 +482,7 @@ struct _IOSBarItemsView: View {
         .padding(.top, PlatformMetrics.navigationBarItemTop - (itemHeight - PlatformMetrics.navigationBarItemHeight) / 2)
         .frame(maxHeight: .infinity, alignment: .top)
         .font(.body)
+        .imageScale(.large)
     }
 }
 

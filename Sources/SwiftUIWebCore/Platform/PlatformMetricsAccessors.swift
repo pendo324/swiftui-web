@@ -681,6 +681,7 @@ extension PlatformMetrics {
     package static var navigationBarItemSpacing: CGFloat { current.navigationBarItemSpacing }
     package static var sheetNavigationBarTopInset: CGFloat { current.sheetNavigationBarTopInset }
     package static var navigationBackButtonInset: CGFloat { current.navigationBackButtonInset }
+    package static var navigationBackButtonLeadingInset: CGFloat { current.navigationBackButtonLeadingInset }
     package static var navigationBackButtonDiameter: CGFloat { current.navigationBackButtonDiameter }
     package static var navigationBackFill: RGBA { current.navigationBackFill }
     package static var navigationBackFillDark: RGBA { current.navigationBackFillDark }
