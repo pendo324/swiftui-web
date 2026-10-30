@@ -195,7 +195,7 @@ package final class ListContentNode<Content: View>: LayoutNode<_ListContent<Cont
                     default: break
                     }
                 }
-                let size = element.node.sizeThatFits(ProposedViewSize(width: nil, height: nil))
+                let size = element.node.sizeThatFits(ProposedViewSize(width: contentWidth - 2 * profile.contentInset, height: nil))
                 element.contentFrame = CGRect(x: profile.margin + profile.contentInset, y: y + top,
                                               width: min(size.width, contentWidth - 2 * profile.contentInset), height: size.height)
                 element.frame = CGRect(x: 0, y: y, width: width, height: top + size.height + profile.headerBottom)
@@ -203,7 +203,7 @@ package final class ListContentNode<Content: View>: LayoutNode<_ListContent<Cont
             case .footer where iOSLayout:
                 // iOS (ios/list/footer): the footnote text 8 below its card in a 21 pt slot (UIKit's
                 // label height for the 18.5 pt line), the next card 23.5 below the slot.
-                let size = element.node.sizeThatFits(ProposedViewSize(width: nil, height: nil))
+                let size = element.node.sizeThatFits(ProposedViewSize(width: contentWidth - 2 * profile.contentInset, height: nil))
                 let followedByHeader = index + 1 < elements.count && elements[index + 1].kind == .header
                 element.contentFrame = CGRect(x: profile.margin + profile.contentInset, y: y + PlatformMetrics.listGroupedFooterTop,
                                               width: min(size.width, contentWidth - 2 * profile.contentInset), height: size.height)
