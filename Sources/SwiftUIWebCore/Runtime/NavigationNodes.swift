@@ -184,9 +184,9 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
         // A presented search hides the bar (ios/search/active) unless the search keeps it; the
         // content still lays out as under its bar (`settleBarModes`: the list keeps no top inset).
         if hiddenBySearch, let search = search(over: nodes), search.isPresented, !search.searchSource.keepsBar { return nil }
-        let title = (top.descendants(where: { $0 is any _NavigationTitleProviding }).first as? any _NavigationTitleProviding)?._navigationTitle
-        let mode = (top.descendants(where: { $0 is any _NavigationTitleDisplayModeProviding }).first as? any _NavigationTitleDisplayModeProviding)?._titleDisplayMode ?? .automatic
-        let hidesBack = (top.descendants(where: { $0 is any _NavigationBackButtonHiddenProviding }).first as? any _NavigationBackButtonHiddenProviding)?._hidesBackButton ?? false
+        let title = (top.firstDescendant((any _NavigationTitleProviding).self) as? any _NavigationTitleProviding)?._navigationTitle
+        let mode = (top.firstDescendant((any _NavigationTitleDisplayModeProviding).self) as? any _NavigationTitleDisplayModeProviding)?._titleDisplayMode ?? .automatic
+        let hidesBack = (top.firstDescendant((any _NavigationBackButtonHiddenProviding).self) as? any _NavigationBackButtonHiddenProviding)?._hidesBackButton ?? false
         let back = index > 0 && !hidesBack
         let items = toolbarItems(over: nodes)
         guard title != nil || back || !items.isEmpty else { return nil }
@@ -225,7 +225,7 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
     private func search(over nodes: [ViewNode]) -> (any _SearchProviding)? {
         guard environment.platformProfile.isIOS, let top = nodes.first else { return nil }
         if let provider = top as? any _SearchProviding { return provider }
-        if let provider = top.descendants(where: { $0 is any _SearchProviding }).first as? any _SearchProviding { return provider }
+        if let provider = top.firstDescendant((any _SearchProviding).self) as? any _SearchProviding { return provider }
         guard root.layoutChildren.first === top else { return nil }
         var current = parent
         while let candidate = current {
@@ -680,7 +680,7 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
         // A search presented since the last update hides the bar: the screens read the bar
         // modes again before they are placed (the list under it drops its top inset).
         settleBarModes(force: false)
-        topScrollView = groups.last?.first?.descendants(where: { $0 is any _Scrollable }).first
+        topScrollView = groups.last?.first?.firstDescendant((any _Scrollable).self)
         var bars = self.bars
         for pass in 0..<2 {
             // Only the root and the top screen are laid out (screens between them are not:
@@ -774,7 +774,7 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
             list.append(.concat(CGAffineTransform(translationX: shift, y: 0)))
         }
         if bar != nil, let top = nodes.first,
-           let ground = (top.descendants(where: { $0 is any _ListGroundProviding }).first as? any _ListGroundProviding)?._groundColor {
+           let ground = (top.firstDescendant((any _ListGroundProviding).self) as? any _ListGroundProviding)?._groundColor {
             list.append(.fillRect(bounds, ground.resolve(in: environment)))
         } else if environment.platformProfile.isIOS {
             // An iOS screen is opaque: the window's colour (white; black in the dark appearance)

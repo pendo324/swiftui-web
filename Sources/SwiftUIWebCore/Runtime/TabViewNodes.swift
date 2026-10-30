@@ -113,9 +113,9 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
         var result: [Tab] = []
         for (index, entry) in entries.enumerated() {
             let tag: AnyHashable = entry.node.layoutValue(for: TagKey.self) ?? AnyHashable(index)
-            let titled = entry.node.descendants(where: { $0 is any _TabItemTitled }).first as? any _TabItemTitled ?? Self.tabItem(above: entry.node)
+            let titled = entry.node.firstDescendant((any _TabItemTitled).self) as? any _TabItemTitled ?? Self.tabItem(above: entry.node)
             let badge = (Self.modifier(above: entry.node) { $0 as? any _TabBadgeProviding })?.badgeText
-                ?? (entry.node.descendants(where: { $0 is any _TabBadgeProviding }).first as? any _TabBadgeProviding)?.badgeText
+                ?? (entry.node.firstDescendant((any _TabBadgeProviding).self) as? any _TabBadgeProviding)?.badgeText
             result.append(Tab(node: entry.node, tag: tag, title: titled?.title ?? "", symbol: titled?.symbolName, badge: badge, isEnabled: entry.node.environment.isEnabled))
         }
         while titles.count > result.count { titles.removeLast().unmount() }
