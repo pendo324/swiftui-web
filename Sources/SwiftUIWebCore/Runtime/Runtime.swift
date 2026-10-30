@@ -393,6 +393,8 @@ public final class Runtime {
 
     /// Incremented at the start of every layout pass; size caches are keyed by it.
     package private(set) var layoutGeneration: UInt64 = 0
+    /// The nodes that appear when they come into a scroll view's viewport (`updateViewportAppearance`).
+    package var viewportAppearers: [WeakNode] = []
     /// Moves on whenever a size or a plan is memoised, so a node forgotten in this epoch has had its ancestors forgotten as well.
     package var memoEpoch: UInt64 = 1
     /// Moves on whenever a node is made, unmounted or updated: what was found by walking the tree is good until it does.

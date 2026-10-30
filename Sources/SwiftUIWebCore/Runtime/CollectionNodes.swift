@@ -34,7 +34,7 @@ package final class ForEachNode<Data: RandomAccessCollection, ID: Hashable, Cont
 
     /// The axis of the lazy container this `ForEach` is in: elements beyond the first are
     /// placeholders until they scroll into view (Runtime/LazyNodes.swift).
-    private var lazyAxis: Axis?
+    package private(set) var lazyAxis: Axis?
     private var estimate: (generation: UInt64, proposal: ProposedViewSize, size: CGSize)?
 
     init(_ context: _NodeContext<ForEach<Data, ID, Content>>) {
@@ -109,7 +109,10 @@ package final class ForEachNode<Data: RandomAccessCollection, ID: Hashable, Cont
     }
 
     private func placeholderOverlaps(_ placeholder: LazyPlaceholderNode, visible: CGRect, contentOrigin origin: CGPoint) -> Bool {
-        let rect = placeholderRect(placeholder, contentOrigin: origin)
+        rectOverlaps(placeholderRect(placeholder, contentOrigin: origin), visible: visible)
+    }
+
+    private func rectOverlaps(_ rect: CGRect, visible: CGRect) -> Bool {
         guard !rect.isNull, !visible.isEmpty else { return false }
         func overlaps(_ lower: CGFloat, _ upper: CGFloat, _ visibleLower: CGFloat, _ visibleUpper: CGFloat) -> Bool {
             // An empty first child can seed a zero-sized estimate for nonempty later children.
@@ -131,19 +134,44 @@ package final class ForEachNode<Data: RandomAccessCollection, ID: Hashable, Cont
     }
 
     package func materialize(visible: CGRect, contentOrigin origin: CGPoint) -> Bool {
-        guard lazyAxis != nil, entries.contains(where: { $0.placeholder != nil }) else { return false }
+        guard let axis = lazyAxis, entries.contains(where: { $0.placeholder != nil }) else { return false }
         var changed = false
         var index = 0
+        let createdBefore = created
+        defer {
+            if getenv("SWIFTUI_TRACE_LAZY") != nil, created > createdBefore {
+                print("SwiftUI: lazy: made \(created - createdBefore) of \(entries.count) elements (\(entries.filter { $0.placeholder == nil }.count) now), window y \(Int(visible.minY))..\(Int(visible.maxY))")
+            }
+        }
+        // A placeholder is the size of the average element, and an element is its own: each one made moves those after it. The placeholders are where the
+        // last layout put them, so the move is told here, row by row (elements of a grid that share a row move what the tallest of them does): the ones
+        // after an element made are looked for where they will be and not where the estimate had them.
+        var shift: CGFloat = 0
+        var row: (end: CGFloat, growth: CGFloat)?
+        func low(_ rect: CGRect) -> CGFloat { axis == .vertical ? rect.minY : rect.minX }
+        func high(_ rect: CGRect) -> CGFloat { axis == .vertical ? rect.maxY : rect.maxX }
         for element in view.data {
             defer { index += 1 }
-            guard index < entries.count, let placeholder = entries[index].placeholder,
-                  placeholderOverlaps(placeholder, visible: visible, contentOrigin: origin) else { continue }
+            guard index < entries.count, let placeholder = entries[index].placeholder else { continue }
+            let estimated = placeholderRect(placeholder, contentOrigin: origin)
+            if let made = row, low(estimated) >= made.end - 0.01 {
+                shift += made.growth
+                row = nil
+            }
+            let expected = axis == .vertical ? estimated.offsetBy(dx: 0, dy: shift) : estimated.offsetBy(dx: shift, dy: 0)
+            guard rectOverlaps(expected, visible: visible) else { continue }
             created += 1
             let node = Content._makeNode(_NodeContext(view: view.content(element), parent: self, environment: environment))
             placeholder.unmount()
             entries[index].node = node
             entries[index].placeholder = nil
             changed = true
+            if let proposal = lastEstimateProposal {
+                var along: CGFloat = 0
+                for child in node.layoutChildren { along += child.sizeThatFits(proposal)[axis] }
+                let growth = along - (high(estimated) - low(estimated))
+                row = (end: max(row?.end ?? high(estimated), high(estimated)), growth: max(row?.growth ?? growth, growth))
+            }
         }
         if changed { didMaterialize() }
         return changed

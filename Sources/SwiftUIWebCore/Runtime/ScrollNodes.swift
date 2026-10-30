@@ -267,12 +267,12 @@ package final class ScrollNode<Content: View>: LayoutNode<ScrollView<Content>>, 
 
     // MARK: Lazy content (Runtime/LazyNodes.swift)
 
-    /// The viewport in content coordinates, one viewport further along each scroll axis: the
+    /// The viewport in content coordinates, half a viewport further along each scroll axis: the
     /// elements a lazy `ForEach` creates ahead of the scroll.
     private var lazyWindow: CGRect {
         var window = CGRect(x: contentOffset.x - contentInsets.leading, y: contentOffset.y - contentInsets.top, width: frame.width, height: frame.height)
-        if axes.contains(.horizontal) { window = window.insetBy(dx: -frame.width, dy: 0) }
-        if axes.contains(.vertical) { window = window.insetBy(dx: 0, dy: -frame.height) }
+        if axes.contains(.horizontal) { window = window.insetBy(dx: -frame.width / 2, dy: 0) }
+        if axes.contains(.vertical) { window = window.insetBy(dx: 0, dy: -frame.height / 2) }
         return window
     }
 

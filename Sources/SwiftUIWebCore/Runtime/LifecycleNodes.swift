@@ -6,12 +6,28 @@ import WebCombine
 @MainActor
 package final class AppearanceActionNode<Content: View>: TypedNode<ModifiedContent<Content, _AppearanceActionModifier>> {
     package private(set) var child: TypedNode<Content>!
+    /// The viewport this appears in, when it is in the elements of a lazy container (it appears when it comes into it, not when it is made).
+    package private(set) var viewportScroll: (any _ScrollViewport)?
+    private var appeared = false
 
     init(_ context: _NodeContext<ModifiedContent<Content, _AppearanceActionModifier>>) {
         super.init(view: context.view, parent: context.parent, runtime: context.runtime, environment: context.environment)
         child = Content._makeNode(_NodeContext(view: context.view.content, parent: self, environment: context.environment))
-        if let appear = context.view.modifier.appear {
+        viewportScroll = _viewportOfLazyContent(self)
+        if viewportScroll != nil {
+            runtime.viewportAppearers.append(WeakNode(node: self))
+        } else if let appear = context.view.modifier.appear {
             runtime.scheduler.enqueue { appear.run() }
+        }
+    }
+
+    package func viewportVisibilityChanged(_ visible: Bool) {
+        if visible, !appeared {
+            appeared = true
+            if let appear = view.modifier.appear { runtime.scheduler.enqueue { appear.run() } }
+        } else if !visible, appeared {
+            appeared = false
+            if let disappear = view.modifier.disappear { runtime.scheduler.enqueue { disappear.run() } }
         }
     }
 
@@ -23,7 +39,8 @@ package final class AppearanceActionNode<Content: View>: TypedNode<ModifiedConte
     }
 
     override package func unmount() {
-        if let disappear = view.modifier.disappear {
+        // A view in a lazy container disappears if it had appeared.
+        if let disappear = view.modifier.disappear, viewportScroll == nil || appeared {
             runtime.scheduler.enqueue { disappear.run() }
         }
         super.unmount()
@@ -38,18 +55,37 @@ package final class AppearanceActionNode<Content: View>: TypedNode<ModifiedConte
 package final class TaskNode<Content: View>: TypedNode<ModifiedContent<Content, _TaskModifier>> {
     package private(set) var child: TypedNode<Content>!
     package private(set) var task: Task<Void, Never>?
+    /// The viewport this task runs while its view is in, when it is in the elements of a lazy container (it begins when it comes into it).
+    package private(set) var viewportScroll: (any _ScrollViewport)?
+    private var appeared = false
 
     init(_ context: _NodeContext<ModifiedContent<Content, _TaskModifier>>) {
         super.init(view: context.view, parent: context.parent, runtime: context.runtime, environment: context.environment)
         child = Content._makeNode(_NodeContext(view: context.view.content, parent: self, environment: context.environment))
-        start()
+        viewportScroll = _viewportOfLazyContent(self)
+        if viewportScroll != nil {
+            runtime.viewportAppearers.append(WeakNode(node: self))
+        } else {
+            start()
+        }
+    }
+
+    package func viewportVisibilityChanged(_ visible: Bool) {
+        if visible, !appeared {
+            appeared = true
+            start()
+        } else if !visible, appeared {
+            appeared = false
+            task?.cancel()
+            task = nil
+        }
     }
 
     /// Starts the task after the current update pass, like `onAppear`.
     private func start() {
         let modifier = view.modifier
         runtime.scheduler.enqueue { [weak self] in
-            guard let self, self.task == nil else { return }
+            guard let self, self.task == nil, self.viewportScroll == nil || self.appeared else { return }
             self.task = Task(priority: modifier.priority) { @MainActor in await modifier.action.run() }
         }
     }
@@ -63,7 +99,7 @@ package final class TaskNode<Content: View>: TypedNode<ModifiedContent<Content, 
         if idChanged {
             task?.cancel()
             task = nil
-            start()
+            if viewportScroll == nil || appeared { start() }
         }
     }
 
@@ -196,3 +232,6 @@ extension Runtime {
 @MainActor package protocol _ActivityHandling: AnyObject { func handle(_ activity: NSUserActivity) -> Bool }
 extension OpenURLHandlerNode: _OpenURLHandling {}
 extension ContinueActivityHandlerNode: _ActivityHandling {}
+
+extension AppearanceActionNode: _ViewportAppearing {}
+extension TaskNode: _ViewportAppearing {}

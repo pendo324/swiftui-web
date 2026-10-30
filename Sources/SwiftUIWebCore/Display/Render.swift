@@ -23,6 +23,7 @@ extension Runtime {
         paintFocusRing(into: &list, context: context)
         paintTooltip(into: &list, context: context)
         paintDragPreview(into: &list, context: context)
+        updateViewportAppearance()
         return list
     }
 }
