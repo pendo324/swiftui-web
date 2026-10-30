@@ -44,6 +44,7 @@ package final class PresentationNode: ViewNode {
         super.init(parent: runtime.root, runtime: runtime, environment: environment)
         var contentEnvironment = environment
         contentEnvironment.dismiss = DismissAction { [weak self] in self?.dismiss() }
+        if kind.isMenu { contentEnvironment._automaticLabelContext = nil }
         content = AnyView._makeNode(_NodeContext(view: view, parent: self, environment: contentEnvironment))
         if preferredColorScheme != nil { applyPreferredColorScheme() }
     }
