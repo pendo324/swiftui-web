@@ -504,7 +504,7 @@ package final class TapGestureNode<Content: View>: UnaryLayoutModifierNode<Conte
     package func pressBegan(at point: CGPoint) { if modifier.count > 1 { recognizer.began(event(point)) } }
     package func pressEnded(inside: Bool) {}
     package func pressEnded(inside: Bool, at point: CGPoint) {
-        if modifier.count > 1 { recognizer.ended(event(point), inside: inside) } else if inside { modifier.action.run() }
+        if modifier.count > 1 { recognizer.ended(event(point), inside: inside) } else if inside { _lastPressLocation = point; _lastPressTime = runtime.lastPointerTime; modifier.action.run() }
     }
     package var semantics: SemanticsNode { SemanticsNode(role: .button, label: "", frame: frameInRoot, identifier: identifier) }
 }

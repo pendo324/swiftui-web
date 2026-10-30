@@ -95,6 +95,8 @@ final class TapRecognizer: _GestureRecognizer<Void> {
     }
 
     override func ended(_ event: GestureEvent, inside: Bool) {
+        _lastPressLocation = event.location
+        _lastPressTime = event.time
         guard inside, abs(event.location.x - start.x) <= 10, abs(event.location.y - start.y) <= 10 else { taps = 0; finish(); return }
         taps += 1
         lastTapTime = event.time
@@ -152,6 +154,7 @@ final class LongPressRecognizer: _GestureRecognizer<Bool> {
         guard let startClock else { return }
         if clock - startClock >= minimumDuration {
             self.startClock = nil
+            _lastPressLocation = start
             emitEnded(true)
             phase = .ended
         }
