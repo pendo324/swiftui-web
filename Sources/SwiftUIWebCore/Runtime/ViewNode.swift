@@ -10,7 +10,7 @@ import Observation
 @MainActor
 open class ViewNode {
     /// The runtime this node belongs to.
-    package unowned let runtime: Runtime
+    package unowned(unsafe) let runtime: Runtime
     /// Animation state while a tween or transition runs (Runtime/AnimationNodes.swift).
     package var presentation: NodePresentation?
     /// Structural children removed under an animation that still paint their removal transition.
@@ -20,7 +20,7 @@ open class ViewNode {
     package var isExiting = false
 
     /// The structural parent, `nil` for the root.
-    package private(set) weak var parent: ViewNode?
+    package private(set) unowned(unsafe) var parent: ViewNode?
 
     /// Distance from the root. The scheduler updates dirty nodes top-down by depth.
     package let depth: Int
@@ -46,7 +46,7 @@ open class ViewNode {
     package var frame: CGRect = .zero
 
     /// The layout node that placed this node (a container, a modifier, or the root).
-    package private(set) weak var layoutParent: ViewNode?
+    package private(set) unowned(unsafe) var layoutParent: ViewNode?
 
     /// Orientation of the stack that contains this node directly, set by the container before
     /// measuring; `Spacer` and `Divider` read it. Modifier nodes forward it to their content.
@@ -156,6 +156,8 @@ open class ViewNode {
         for child in structuralChildren { child.unmount() }
         isMounted = false
         needsUpdate = false
+        parent = nil
+        layoutParent = nil
     }
 
     // MARK: Layout
