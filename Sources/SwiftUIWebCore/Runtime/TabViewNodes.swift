@@ -35,6 +35,17 @@ package final class TabItemNode<Content: View>: UnaryLayoutModifierNode<Content,
         return nil
     }
 
+    /// The label's first image that is not a symbol: what the bar draws where there is no symbol to name.
+    package var iconImage: Image? {
+        for node in label.descendants(where: { $0 is ImageNode }) {
+            if let image = node as? ImageNode {
+                if case .system = image.view.source { continue }
+                return image.view
+            }
+        }
+        return nil
+    }
+
     override package var structuralChildren: [ViewNode] { super.structuralChildren + [label] }
 
     override package func unmount() {
@@ -56,6 +67,7 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
         package let tag: AnyHashable
         package let title: String
         package let symbol: String?
+        package var image: Image? = nil
         /// The tab's `badge`, and whether the tab is enabled (`disabled` on the tab or its content).
         package let badge: String?
         package let isEnabled: Bool
@@ -116,7 +128,9 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
             let titled = entry.node.firstDescendant((any _TabItemTitled).self) as? any _TabItemTitled ?? Self.tabItem(above: entry.node)
             let badge = (Self.modifier(above: entry.node) { $0 as? any _TabBadgeProviding })?.badgeText
                 ?? (entry.node.firstDescendant((any _TabBadgeProviding).self) as? any _TabBadgeProviding)?.badgeText
-            result.append(Tab(node: entry.node, tag: tag, title: titled?.title ?? "", symbol: titled?.symbolName, badge: badge, isEnabled: entry.node.environment.isEnabled))
+            var tab = Tab(node: entry.node, tag: tag, title: titled?.title ?? "", symbol: titled?.symbolName, badge: badge, isEnabled: entry.node.environment.isEnabled)
+            if tab.symbol == nil { tab.image = titled?.iconImage }
+            result.append(tab)
         }
         while titles.count > result.count { titles.removeLast().unmount() }
         while icons.count > result.count { icons.removeLast().unmount() }
@@ -131,7 +145,8 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
                 let tint: Color = selected ? (environment._tint ?? .accentColor) : .primary
                 let wide = result.count >= Self.wideBarTabs
                 text = AnyView(Text(result[index].title).font(.system(size: wide ? 10.5 : PlatformMetrics.tabLabelSize, weight: wide ? .semibold : .medium)).foregroundStyle(tint))
-                let icon = AnyView(Image(systemName: result[index].symbol ?? "").font(.system(size: PlatformMetrics.tabIconSize)).foregroundStyle(tint))
+                let icon = result[index].image.map { AnyView($0.foregroundStyle(tint)) }
+                    ?? AnyView(Image(systemName: result[index].symbol ?? "").font(.system(size: PlatformMetrics.tabIconSize)).foregroundStyle(tint))
                 if index < icons.count {
                     icons[index].update(view: icon, environment: environment, force: false)
                 } else {
@@ -448,6 +463,7 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
 package protocol _TabItemTitled: AnyObject {
     var title: String { get }
     var symbolName: String? { get }
+    var iconImage: Image? { get }
 }
 
 extension TabItemNode: _TabItemTitled {}
