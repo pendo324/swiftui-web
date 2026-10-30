@@ -34,7 +34,7 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View>: View
     @Environment(\._inMenu) private var inMenu
 
     public var body: some View {
-        let selected = mixed?.isMixed() == true ? AnyHashable(_MixedSelection()) : AnyHashable(selection.wrappedValue)   // read here so observation tracks it
+        let selected = mixed?.isMixed() == true ? AnyHashable(_MixedSelection()) : _tagValue(selection.wrappedValue)   // read here so observation tracks it
         let binding = selection
         let select = _PickerSelection { if let value = $0.base as? SelectionValue { binding.wrappedValue = value } }
         if inMenu {
@@ -141,6 +141,13 @@ public struct _PickerHost: View {
 
 // MARK: - Tags
 
+/// A selection as a tag is compared with it: the value an optional selection holds.
+package func _tagValue<T: Hashable>(_ value: T) -> AnyHashable {
+    let mirror = Mirror(reflecting: value)
+    if mirror.displayStyle == .optional, let wrapped = mirror.children.first?.value as? AnyHashable { return wrapped }
+    return AnyHashable(value)
+}
+
 package struct TagKey: LayoutValueKey {
     package nonisolated(unsafe) static let defaultValue: AnyHashable? = nil
 }
@@ -150,7 +157,7 @@ extension View {
     /// Sets the unique tag value of this view, as an optional of its type too when
     /// `includeOptional` is set (so a `Picker` with an optional selection matches it).
     nonisolated public func tag<V: Hashable>(_ tag: V, includeOptional: Bool) -> some View {
-        layoutValue(key: TagKey.self, value: includeOptional ? AnyHashable(Optional(tag)) : AnyHashable(tag))
+        layoutValue(key: TagKey.self, value: AnyHashable(tag))
     }
 
     nonisolated public func tag<V: Hashable>(_ tag: V) -> some View {
