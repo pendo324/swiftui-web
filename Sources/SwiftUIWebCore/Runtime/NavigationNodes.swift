@@ -575,6 +575,8 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
     /// view that ignores the safe area extends up under the bar (ios/representable/safearea-color,
     /// safearea-ignored). A scroll view or list is laid out under the bar as well rather than
     /// extending and insetting (the goldens place its frame there).
+    override package var usesBottomOverlap: Bool { true }
+
     override package func providedSafeAreaInsets(for child: ViewNode) -> EdgeInsets {
         let bars = self.bars
         for (index, screen) in screens.enumerated() where screen.nodes.contains(where: { $0 === child }) {
@@ -633,9 +635,12 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
                 let taken = above + (chrome?.bottom ?? 0)
                 let inner = taken > 0 ? ProposedViewSize(width: proposal.width, height: proposal.height.map { max(0, $0 - taken) }) : proposal
                 for node in group {
-                    let size = node.sizeThatFits(inner)
-                    node.place(at: CGPoint(x: (box.width - size.width) / 2, y: above + (box.height - taken - size.height) / 2),
-                               anchor: .topLeading, proposal: inner, by: self)
+                    // Under a tab bar, what scrolls takes the whole frame (and insets what it holds); what does not stays above the bar.
+                    let reserved = node.usesBottomOverlap ? 0 : safeAreaOverlap.bottom
+                    let fitted = reserved > 0 ? ProposedViewSize(width: inner.width, height: inner.height.map { max(0, $0 - reserved) }) : inner
+                    let size = node.sizeThatFits(fitted)
+                    node.place(at: CGPoint(x: (box.width - size.width) / 2, y: above + (box.height - taken - reserved - size.height) / 2),
+                               anchor: .topLeading, proposal: fitted, by: self)
                 }
             }
             layoutSearchChrome(chrome, barHeight: (bars.last ?? nil)?.height ?? 0)

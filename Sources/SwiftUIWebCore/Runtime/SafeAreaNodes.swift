@@ -25,6 +25,7 @@ package class SafeAreaNode<Content: View, Modifier: ViewModifier>: UnaryLayoutMo
     /// Nested safe-area modifiers keep an extending child (a scroll view) extending; the
     /// overlaps accumulate through placement.
     override package var extendsIntoSafeArea: Bool { targets.count == 1 && targets[0].extendsIntoSafeArea }
+    override package var usesBottomOverlap: Bool { targets.count == 1 && targets[0].usesBottomOverlap }
 
     /// The insets this node adds, for the given proposal (an inset view is measured against it).
     package func insets(for proposal: ProposedViewSize) -> EdgeInsets { EdgeInsets() }

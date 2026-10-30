@@ -202,6 +202,7 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
     }
 
     override package func layoutContents(proposal: ProposedViewSize) {
+        barAtBottom = bottomBar
         if bottomBar { layoutBottomBar(); return }
         let plan = plan(width: frame.width)
         tabs = plan.tabs
@@ -249,7 +250,7 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
                             proposal: ProposedViewSize(size), by: self)
             }
             if index == plan.selected {
-                let area = CGRect(x: 0, y: 0, width: frame.width, height: max(0, frame.height - PlatformMetrics.tabBarContentBottomInset))
+                let area = CGRect(x: 0, y: 0, width: frame.width, height: tab.node.usesBottomOverlap ? frame.height : max(0, frame.height - PlatformMetrics.tabBarContentBottomInset))
                 let contentSize = tab.node.sizeThatFits(ProposedViewSize(area.size))
                 tab.node.place(at: CGPoint(x: area.midX - contentSize.width / 2, y: area.midY - contentSize.height / 2), anchor: .topLeading,
                                proposal: ProposedViewSize(area.size), by: self)
@@ -265,6 +266,18 @@ package final class TabViewNode: LayoutNode<_TabViewPrimitive>, _Interactive, _K
         let width = max(PlatformMetrics.tabBadgeMinimumWidth, text.width + 2 * PlatformMetrics.tabBadgePadding)
         return CGRect(x: icon.midX + PlatformMetrics.tabBadgeLeading, y: icon.minY - PlatformMetrics.tabBadgeRise, width: width, height: height)
     }
+
+    private var barAtBottom = false
+
+    /// The bar's region at the bottom is not the content's: it is under the bar.
+    override package func providedSafeAreaInsets(for child: ViewNode) -> EdgeInsets {
+        guard bottomBar, let selectedIndex, tabs.indices.contains(selectedIndex), tabs[selectedIndex].node === child else { return EdgeInsets() }
+        return EdgeInsets(top: 0, leading: 0, bottom: PlatformMetrics.tabBarContentBottomInset, trailing: 0)
+    }
+
+    /// A press on the bar is the bar's, and not that of what scrolls under it. (Whether the bar is at the bottom is what the last layout found: a press is
+    /// taken outside the pass that selects the platform's metrics.)
+    override package func capturesHit(at point: CGPoint) -> Bool { barAtBottom && bar.contains(point) }
 
     override package var paintedChildren: [ViewNode] {
         tabs.compactMap(\.shown) + tabs.compactMap(\.icon) + tabs.compactMap(\.badgeLabel) + (selectedIndex.map { [tabs[$0].node] } ?? [])

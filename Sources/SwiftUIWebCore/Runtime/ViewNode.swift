@@ -467,6 +467,10 @@ open class ViewNode {
     /// content instead (scroll views). Wrapper nodes forward their child's.
     package var extendsIntoSafeArea: Bool { false }
 
+    /// Whether this node, given the whole of a tab view's frame, keeps what is not scrolling above the tab bar itself and lets the rest go under it: a scroll
+    /// view, a navigation stack, and what only passes them on.
+    package var usesBottomOverlap: Bool { extendsIntoSafeArea }
+
     /// The safe area as placed, set by the placer in `place(at:...)` (Docs/elements/Position.md):
     /// `safeAreaOverlap` is how much of this node's frame lies in the unsafe region on each edge
     /// (a scroll view insets its content by it); `safeAreaExtension` is how far beyond an edge

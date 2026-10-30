@@ -302,6 +302,10 @@ open class UnaryLayoutModifierNode<Content: View, Modifier: ViewModifier>:
         let targets = targets
         return !changesChildSize && targets.count == 1 && targets[0].extendsIntoSafeArea
     }
+    override package var usesBottomOverlap: Bool {
+        let targets = targets
+        return !changesChildSize && targets.count == 1 && targets[0].usesBottomOverlap
+    }
 
     override package var paintedChildren: [ViewNode] {
         let targets = targets
