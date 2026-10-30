@@ -14,3 +14,12 @@ func _flushWalks() {
     fputs("SwiftUI: walks: \(_walkCounts.values.reduce(0, +)) [\(top)]\n", stderr)
     _walkCounts.removeAll()
 }
+let _dumpFrames = getenv("SWIFTUI_TREE_FRAMES") != nil
+/// `SWIFTUI_VERIFY_STRUCTURE=1`: what is remembered of the tree's shape (`layoutChildren`, `firstDescendant`) is made again each time it is used, and a
+/// difference is said: the tree changed in a way `treeVersion` did not hear of.
+let _verifyStructure = getenv("SWIFTUI_VERIFY_STRUCTURE") != nil
+@MainActor func _checkKept(_ kept: [ViewNode], _ fresh: [ViewNode], _ what: @autoclosure () -> String) {
+    guard kept.count != fresh.count || !zip(kept, fresh).allSatisfy({ $0 === $1 }) else { return }
+    fputs("SwiftUI: stale: \(what()) was \(kept.map { $0.nodeDescription }) and is \(fresh.map { $0.nodeDescription })\n", stderr)
+}
+func _dumpNumber(_ value: CGFloat) -> Int { value.isFinite ? Int(value.rounded()) : -1 }

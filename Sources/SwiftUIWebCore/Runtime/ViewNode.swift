@@ -542,7 +542,7 @@ open class ViewNode {
 
     /// Indented dump of the subtree, one node per line, for tests and debugging.
     package func dump(indent: Int = 0) -> String {
-        var lines = [String(repeating: "  ", count: indent) + nodeDescription]
+        var lines = [String(repeating: "  ", count: indent) + nodeDescription + (_dumpFrames ? " [\(_dumpNumber(frameInRoot.minX)),\(_dumpNumber(frameInRoot.minY)) \(_dumpNumber(frameInRoot.width))x\(_dumpNumber(frameInRoot.height)); shown \(_dumpNumber(presentedFrame.minX)),\(_dumpNumber(presentedFrame.minY)) #\(String(UInt(bitPattern: ObjectIdentifier(self).hashValue) & 0xfffff, radix: 16))]" : "")]
         for child in structuralChildren {
             lines.append(child.dump(indent: indent + 1))
         }
