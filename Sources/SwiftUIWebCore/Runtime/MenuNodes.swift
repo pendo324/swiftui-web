@@ -32,7 +32,7 @@ package final class MenuButtonNode: LayoutNode<_MenuHost>, _Interactive {
         if plainLabel {
             // iOS: the label in the body font and the accent colour, nothing around it.
             environment.font = .body
-            environment.foregroundColor = enabled ? Color.accentColor : Color.primary.opacity(environment.platformProfile.metrics.menuDisabledLabelAlpha)
+            environment.foregroundColor = enabled ? (environment._tint ?? Color.accentColor) : Color.primary.opacity(environment.platformProfile.metrics.menuDisabledLabelAlpha)
             return environment
         }
         environment.font = .system(size: PlatformMetrics.buttonLabelSize)
@@ -57,8 +57,8 @@ package final class MenuButtonNode: LayoutNode<_MenuHost>, _Interactive {
         var dividerX: CGFloat?
     }
 
-    private func plan() -> Plan {
-        let labelSize = target?.sizeThatFits(.unspecified) ?? .zero
+    private func plan(_ proposal: ProposedViewSize = .unspecified) -> Plan {
+        let labelSize = target?.sizeThatFits(plainLabel ? proposal : .unspecified) ?? .zero
         if plainLabel { return Plan(size: labelSize, label: CGRect(origin: .zero, size: labelSize), dividerX: nil) }
         let trailing: CGFloat
         var dividerX: CGFloat?
@@ -77,7 +77,7 @@ package final class MenuButtonNode: LayoutNode<_MenuHost>, _Interactive {
                     dividerX: dividerX)
     }
 
-    override package func computeSizeThatFits(_ proposal: ProposedViewSize) -> CGSize { plan().size }
+    override package func computeSizeThatFits(_ proposal: ProposedViewSize) -> CGSize { plan(proposal).size }
 
     /// iOS: the label's own dimensions, so a baseline-aligned row lines the menu up with text
     /// (ios/menu/basic `row`).
@@ -87,7 +87,7 @@ package final class MenuButtonNode: LayoutNode<_MenuHost>, _Interactive {
     }
 
     override package func layoutContents(proposal: ProposedViewSize) {
-        let plan = plan()
+        let plan = plan(proposal)
         labelFrame = plan.label
         dividerX = plan.dividerX
         target?.place(at: plan.label.origin, anchor: .topLeading, proposal: ProposedViewSize(plan.label.size), by: self)
