@@ -286,7 +286,24 @@ public final class _ImageDrawing: Equatable, @unchecked Sendable {
         case .drawText(let text, let font, let origin, let rgba): return .drawText(text, font, origin: origin, color(rgba))
         case .drawTextGradient(let text, let font, let origin, _): return .drawText(text, font, origin: origin, tint)
         case .drawImage(var draw): draw.tint = tint; return .drawImage(draw)
+        case .drawBitmap(let bitmap, let rect): return .drawBitmap(tinted(bitmap, tint), rect: rect)
         default: return command
         }
+    }
+
+    /// `bitmap`'s silhouette in `tint`: each pixel's colour is the tint's, and its alpha its own (times the tint's).
+    private static func tinted(_ bitmap: DisplayBitmap, _ tint: RGBA) -> DisplayBitmap {
+        func byte(_ value: Double) -> UInt8 { UInt8(max(0, min(255, (value * 255).rounded()))) }
+        let (red, green, blue) = (byte(tint.red), byte(tint.green), byte(tint.blue))
+        var pixels = bitmap.pixels
+        var at = 0
+        while at + 3 < pixels.count {
+            pixels[at] = red
+            pixels[at + 1] = green
+            pixels[at + 2] = blue
+            pixels[at + 3] = byte(Double(pixels[at + 3]) / 255 * tint.alpha)
+            at += 4
+        }
+        return DisplayBitmap(width: bitmap.width, height: bitmap.height, pixels: pixels)
     }
 }
