@@ -95,7 +95,8 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
     private func contentEnvironment(large: Bool) -> EnvironmentValues {
         var environment = environment
         environment._navigationContext = context
-        environment.dismiss = DismissAction { [weak self] in self?.pop() }
+        let outer = environment.dismiss
+        environment.dismiss = DismissAction { [weak self] in if self?.pop() != true { outer() } }
         environment._underNavigationBar = environment.platformProfile.isIOS && large
         environment._navigationBarOverhang = environment.platformProfile.isIOS
             ? (large ? PlatformMetrics.navigationBarLargeHeight : PlatformMetrics.navigationBarInlineHeight) + barTopInset : 0
@@ -288,6 +289,7 @@ package final class NavigationStackNode: LayoutNode<_NavigationStackHost>, _Fram
         let view = AnyView(_IOSBarItemsView(items: bar.items))
         var environment = environment
         environment._automaticLabelContext = .toolbar
+        if let screen = groups.last?.first { environment.dismiss = screen.environment.dismiss }
         if let itemsBar {
             itemsBar.update(view: view, environment: environment, force: false)
         } else {

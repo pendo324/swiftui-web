@@ -169,9 +169,9 @@ package final class PresentationNode: ViewNode {
         }
         let view = AnyView(_ToolbarBarView(items: items, title: nil, search: nil, scopes: nil))
         if let toolbarBar {
-            toolbarBar.update(view: view, environment: environment)
+            toolbarBar.update(view: view, environment: content.environment)
         } else {
-            toolbarBar = ToolbarChromeNode(runtime: runtime, view: view, environment: environment)
+            toolbarBar = ToolbarChromeNode(runtime: runtime, view: view, environment: content.environment)
         }
         toolbarBar?.layout(in: CGSize(width: panel.width, height: Runtime.toolbarHeight))
         toolbarBar?.frame.origin = CGPoint(x: panel.minX, y: panel.minY + top)
