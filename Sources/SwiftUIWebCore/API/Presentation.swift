@@ -454,7 +454,7 @@ package struct _AlertButtonStyle: ButtonStyle {
             .foregroundStyle(color)
             .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
             .background(Capsule().fill(filled ? Color.accentColor : Color.black.opacity(fillAlpha)))
-            .opacity(configuration.isPressed ? 0.7 : 1)
+            .opacity(dialog && configuration.role == .cancel ? 0 : configuration.isPressed ? 0.7 : 1)
     }
 }
 
