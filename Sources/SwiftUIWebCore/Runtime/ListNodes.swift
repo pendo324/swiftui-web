@@ -17,7 +17,7 @@ package protocol _ListGroundProviding: AnyObject {
 }
 
 @MainActor
-package final class ListContentNode<Content: View>: LayoutNode<_ListContent<Content>>, _Interactive, _KeyHandling, _ListGroundProviding, _DropTarget, _FrameSubscriber, _SwipeWheelReceiving {
+package final class ListContentNode<Content: View>: LayoutNode<_ListContent<Content>>, _Interactive, _KeyHandling, _ListGroundProviding, _DropTarget, _FrameSubscriber, _SwipeWheelReceiving, _ListCellProviding {
     package var _groundColor: Color? { profile.cards ? profile.background : nil }
     package private(set) var child: TypedNode<Content>!
     private let identifier: Int
@@ -76,6 +76,28 @@ package final class ListContentNode<Content: View>: LayoutNode<_ListContent<Cont
     }
 
     private var profile: _ListProfile { view.profile }
+
+    package func cell(containing target: ViewNode) -> _ListCell? {
+        var chain = Set<ObjectIdentifier>()
+        var up: ViewNode? = target
+        while let node = up, node !== self {
+            chain.insert(ObjectIdentifier(node))
+            up = node.parent
+        }
+        guard up === self else { return nil }
+        var viewport: ViewNode? = parent
+        while let ancestor = viewport, !(ancestor is _ScrollViewport) { viewport = ancestor.parent }
+        let origin = frameInRoot.origin
+        for element in elements where element.kind == .row {
+            var row = element.node
+            while let proxy = row as? LayoutModifierProxy { row = proxy.target }
+            guard chain.contains(ObjectIdentifier(row)) else { continue }
+            let frame = CGRect(x: origin.x + element.frame.minX, y: origin.y + element.frame.minY, width: element.frame.width, height: element.frame.height)
+            let visible = (viewport as? _ScrollViewport)?.frameInRoot ?? frameInRoot
+            return _ListCell(list: ObjectIdentifier(self), row: ObjectIdentifier(row), frame: frame, viewport: visible)
+        }
+        return nil
+    }
 
     // MARK: Elements
 
